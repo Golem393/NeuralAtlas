@@ -1,0 +1,28 @@
+Input: Take the "White Box" of a building from Overture/TUM.
+
+Prompting: Your Python script identifies the context (e.g., "Munich, Residential, 19th Century").
+
+Generation: Send a 2D snapshot of the building facade to a Stable Diffusion + ControlNet model.
+
+    Prompt: "Bavarian stucco facade, red tile roof, sunny day, architectural rendering style."
+
+    ControlNet: Keeps the edges of the windows/doors exactly where they should be (if you have that data) or hallucinates them in valid positions.
+
+Baking: Save this generated image as a texture atlas.
+
+Scale / Cost	Running Stable Diffusion for 1 million buildings costs a fortune. Fix: Don't generate everything. Generate "Archetypes." Create 50 variations of "Munich House" and randomly assign them to similar-sized buildings.
+
+Accuracy (Legal)	If you say a house has no solar, but it does, the client is annoyed. Fix: Sell "Probability Scores," not facts. "We are 85% sure this house is solar-ready."
+
+
+-- 1. Drop the public schema (this deletes EVERYTHING in public)
+DROP SCHEMA public CASCADE;
+
+-- 2. Recreate the public schema
+CREATE SCHEMA public;
+
+-- 3. Restore standard permissions so Supabase works correctly
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO anon;
+GRANT ALL ON SCHEMA public TO authenticated;
+GRANT ALL ON SCHEMA public TO service_role;

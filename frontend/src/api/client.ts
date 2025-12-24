@@ -26,4 +26,26 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
   return response.json();
 }
 
-export { fetchApi, ApiError };
+const api = {
+  get: <T>(endpoint: string, options?: RequestInit) => 
+    fetchApi<T>(endpoint, { ...options, method: 'GET' }),
+  
+  post: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
+    fetchApi<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  
+  put: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
+    fetchApi<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  
+  delete: <T>(endpoint: string, options?: RequestInit) =>
+    fetchApi<T>(endpoint, { ...options, method: 'DELETE' }),
+};
+
+export { fetchApi, api, ApiError };

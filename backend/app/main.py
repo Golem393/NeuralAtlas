@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator, Dict
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api.routes import buildings, health
+from .api.routes import health, tiles, terrain
 from .config import settings
 
 
@@ -32,8 +32,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api", tags=["health"])
-app.include_router(buildings.router, prefix="/api/buildings", tags=["buildings"])
-
+app.include_router(tiles.router, prefix="/api/tiles", tags=["tiles"])
+app.include_router(terrain.router, prefix="/api/terrain", tags=["terrain"])
 
 @app.get("/")
 async def root() -> Dict[str, Any]:

@@ -1,0 +1,169 @@
+Great! Let me help you plan this out step-by-step. This is a solid MVP approach for your NeuralAtlas project.
+
+High-Level Architecture Plan
+Data Flow: User selects source + layers → Backend fetches/processes → Frontend receives tiles → MapLibre renders
+
+Step-by-Step Implementation Plan
+Phase 1: Backend - Data Source Integration
+Step 1.1: Set up data source connectors
+
+Create a DataSourceManager or similar service in backend/app/services/
+Each data source (OSM, Overture, TUM GBA, etc.) needs its own adapter/connector
+For Overture Maps: Use DuckDB to query Parquet files directly from S3 (as per your architecture)
+For OSM: Use Overpass API or a local PostGIS database with OSM data imported
+Store connection configs in config.py
+Step 1.2: Define data schemas
+
+Create Pydantic models in schemas.py for:
+MapSourceRequest (which source user selected)
+LayerConfig (what layers to show: buildings, streets, lakes, terrain)
+MapStyleRequest (background color, simple style options)
+TileResponse (what you send to frontend)
+Step 1.3: Database setup
+
+Add tables in schemas for:
+map_sources (available sources metadata)
+user_preferences (optional: save user's last selected source/layers)
+Follow your declarative workflow (edit schemas/, run in Supabase SQL Editor)
+Phase 2: Backend - Tile Generation
+Step 2.1: Set up Martin tile server
+
+Install Martin (Rust-based) - connects to your Supabase PostGIS
+Create config file martin.yaml pointing to Supabase connection
+Martin will auto-generate vector tile endpoints from your PostGIS tables
+Step 2.2: Create tile endpoints
+
+Add routes in backend/app/api/routes/tiles.py:
+POST /api/tiles/configure - receives user's source + layer selections
+GET /api/tiles/{z}/{x}/{y}.mvt - serves vector tiles (proxy to Martin or direct)
+Logic: Based on user selection, query appropriate data source, transform to PostGIS format, Martin serves as MVT
+Step 2.3: Layer filtering logic
+
+In your tile endpoint, filter layers based on user selection:
+If show_buildings=true → include buildings layer
+If show_streets=true → include roads/highways
+If show_lakes=true → include water bodies
+Return only requested layers to frontend
+Phase 3: Backend - Terrain & Raster Tiles
+Step 3.1: Set up TiTiler for terrain
+
+Install TiTiler (Python-based raster tile server)
+Configure to serve terrain data (SRTM, Mapzen tiles)
+Create endpoint GET /api/terrain/{z}/{x}/{y}.png
+Step 3.2: Background/base layer handling
+
+For simple backgrounds, you could:
+Generate solid color tiles server-side
+OR return style JSON that MapLibre can render (more efficient)
+Phase 4: Frontend - API Client Setup
+Step 4.1: Define API endpoints
+
+In endpoints, create:
+mapSources.ts - functions to get available sources
+tiles.ts - functions to configure tile requests
+mapStyles.ts - functions for style configurations
+Step 4.2: Create TanStack Query hooks
+
+In queries, create:
+useMapSources() - fetch available data sources
+useMapConfiguration() - mutation hook to send user's selections to backend
+useTileConfig() - fetch tile endpoint URLs based on user selection
+Step 4.3: Type safety
+
+Create TypeScript interfaces in types.ts matching your Pydantic models
+Example: MapSourceOption, LayerConfig, TileConfig
+Phase 5: Frontend - UI Components
+Step 5.1: Create map controls
+
+Component structure in frontend/src/features/map/:
+MapSourceSelector.tsx - dropdown to choose OSM, Overture, etc.
+LayerToggle.tsx - checkboxes for buildings, streets, lakes, terrain
+StyleSelector.tsx - simple background color picker or preset buttons
+MapView.tsx - the actual MapLibre component
+Step 5.2: State management strategy
+
+User selections (source, layers, style): Use zustand store or useState in parent component
+Map state (zoom, center, hover): Use zustand (high-frequency updates)
+Tile configuration from API: Use TanStack Query (useTileConfig)
+Phase 6: Frontend - MapLibre Integration
+Step 6.1: Install dependencies
+"maplibre-gl": "^4.x.x"  // latest version
+Step 6.2: Initialize MapLibre
+
+In MapView.tsx:
+Create map instance in useEffect
+CRITICAL: Return cleanup function (map.remove()) to prevent WebGL crashes in Strict Mode
+Set initial view (lat/lon/zoom)
+Step 6.3: Add tile sources dynamically
+
+When user changes selection → call API → get tile URLs → update MapLibre sources:
+map.addSource('buildings', {
+  type: 'vector',
+  tiles: ['http://your-backend.com/api/tiles/{z}/{x}/{y}.mvt']
+})
+Step 6.4: Add layers conditionally
+
+Based on user's layer toggles, add/remove MapLibre layers:
+if (showBuildings) {
+  map.addLayer({
+    id: 'buildings-layer',
+    source: 'buildings',
+    'source-layer': 'buildings',  // from MVT
+    type: 'fill-extrusion',
+    paint: { /* styling */ }
+  })
+}
+Step 6.5: Style updates
+
+When user changes background → update map.setPaintProperty() or base layer
+Phase 7: Data Pipeline (Data Source → PostGIS)
+Step 7.1: Overture Maps ingestion
+
+Create Python script in backend/scripts/ingest_overture.py:
+Use DuckDB to query Overture Parquet from S3
+Filter by bounding box (for MVP, pick one city)
+Transform to GeoJSON or WKB format
+Insert into Supabase PostGIS tables
+Step 7.2: OSM ingestion
+
+Use osm2pgsql tool or Python library osmium
+Import OSM data for your target city into PostGIS
+Create separate tables: osm_buildings, osm_roads, osm_water
+Step 7.3: Schema for geographic data
+
+In schemas, create tables:
+overture_buildings (geometry, properties)
+osm_buildings
+roads, water_bodies, etc.
+Add spatial indexes: CREATE INDEX ... USING GIST (geom)
+Recommended Order of Implementation
+Backend API structure (Pydantic schemas, routes skeleton)
+Database schema (PostGIS tables for buildings/roads/water)
+Data ingestion (pick ONE source for MVP - suggest Overture for one city)
+Martin setup (get vector tiles working for that one source)
+Frontend API client (endpoints + query hooks)
+Frontend UI (source selector + layer toggles - initially just render UI)
+MapLibre integration (hardcode one tile source first, verify rendering)
+Dynamic tile switching (connect UI selections → API → MapLibre)
+Add second data source (test switching between sources)
+Add terrain/TiTiler (final enhancement)
+Key Decisions You Need to Make
+Q1: Where does the "switching" logic live?
+
+Option A: Backend stores GeoJSON/PostGIS for ALL sources, serves via Martin
+Option B: Backend proxies to external tile servers (e.g., OSM tiles stay external)
+Recommendation: Option A for control, Option B for speed (MVP could use B)
+Q2: Do you cache user selections?
+
+If yes → add user_preferences table in Supabase
+If no → just pass as request parameters each time
+Q3: MVP scope - how many sources/cities?
+
+Recommendation: Start with ONE source (Overture) + ONE city (Munich or Berlin)
+Get full pipeline working, then add OSM
+Q4: Layer styling - backend or frontend?
+
+Backend: Return Mapbox/MapLibre style JSON from API
+Frontend: Hardcode styles in React components
+Recommendation: Frontend for MVP (faster iteration)
+Does this plan make sense? Any specific step you want me to elaborate on before you start coding?

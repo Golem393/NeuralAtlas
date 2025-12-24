@@ -1,0 +1,50 @@
+frontend:
+
+MapLibre GL JS -> go to
+use deck gl
+Three.js
+deck.gl on top of maplibre gl js #@deck.gl/mapbox
+#CesiumJS
+TypeScript (
+    Vite + React + TypeScript
+
+backend:
+fastapi
+TiTiler
+.glb or .gltf
+Python
+docker-compose.yml
+
+Layer 2: The Tile Server (Martin or TiPpg)
+Tool: Martin (written in Rust).
+How it works: It connects to PostGIS, grabs the data, converts it to Vector Tiles (MVT), and blasts them to the frontend in milliseconds. It requires zero coding, just a config file.
+
+
+maps 
+Overture Maps (base layer)
+
+Berlin/Germany: "LOD2 Gebäudeumringe" (Open Data Germany).
+
+New York: "NYC 3D Building Model" (NYC Open Data).
+
+Netherlands: "3D BAG" (The entire country in 3D, fully open).
+
+OpenStreetMap (OSM)
+
+ESA Copernicus
+
+USGS EarthExplorer
+
+TUM GBA
+
+satellite: Sentinel-2, Open Government Data
+
+ML: PyTorch (running on a server, not the browser)
+
+
+terrain: Mapzen Joins / AWS Terrain Tiles, SRTM (Shuttle Radar Topography Mission).
+
+
+database: PostgreSQL with the PostGIS
+
+use duckdb read Overture's Parquet files directly from Amazon S3

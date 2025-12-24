@@ -1,0 +1,48 @@
+This is a solid, standard foundation. You are correctly setting up the modern React 18 root API and wrapping your app in the Query Provider immediately.
+
+However, for a High-Performance Map Application (where you download heavy 20MB+ GeoJSON files), the default QueryClient settings are dangerous.
+
+By default, React Query treats data as "stale" immediately. If a user alt-tabs away and comes back, React Query will try to re-download your massive map data. You need to tweak this to prevent performance spikes.
+The "Pro" Setup for Map Apps
+
+Here is the optimized version. Copy this into your main.tsx:
+TypeScript
+
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools' // 1. Debugging Tool
+import './index.css'
+import App from './App.tsx'
+
+// 2. Optimized Configuration for Heavy Data
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Map data doesn't change often. Don't refetch it when window refocuses.
+      refetchOnWindowFocus: false, 
+      // Keep data "fresh" for 5 minutes (prevents spamming your backend)
+      staleTime: 5 * 60 * 1000, 
+      // If a request fails, don't retry immediately (saves API costs)
+      retry: 1,
+    },
+  },
+})
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+      {/* 3. The DevTools toggle button (only shows in dev) */}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  </StrictMode>,
+)
+
+Why these changes matter for you:
+
+    refetchOnWindowFocus: false: Imagine a user is looking at your 3D map, switches to Slack, and switches back. With the default setup, your app would try to re-download the buildings. This setting stops that.
+
+    staleTime: 5 mins: Building data (geometries) rarely changes. There is no need to check for updates every second.
+
+    ReactQueryDevtools: This adds a tiny floating icon in development. It lets you see exactly what data is cached and is a lifesaver when debugging why a map layer isn't loading.

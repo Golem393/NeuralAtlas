@@ -1,0 +1,13 @@
+npm run build for production
+
+npm run dev, locally run
+
+
+useContext to pass vlaues through mayn react elements
+
+to keep react component pure -->strict mode
+
+fast api -> use response model
+
+local fast api server/docs#/
+/redoc
