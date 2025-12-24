@@ -2,57 +2,115 @@
 
 ## Project Overview
 
-NeuralAtlas is a 3D geospatial visualization platform for generating photorealistic building textures from "white box" models using AI. Additionally, we also want to visualize terrain and other geospatial information. The system combines mapping data (Overture Maps, OSM, TUM GBA) with generative AI (Stable Diffusion + ControlNet) to create textured 3D building, forest and mountain models at scale. (more features will be added)
+NeuralAtlas is a 3D geospatial visualization platform for generating photorealistic building textures from "white box" models using AI. The system combines mapping data (Overture Maps, OSM) with generative AI (Stable Diffusion + ControlNet) to create textured 3D building models at scale.
 
 ## Architecture
 
-### Planned Tech Stack (Early Stage)
+### Current Tech Stack
 
-**Frontend:** React 19 + TypeScript + Vite, with MapLibre GL JS as base layer and deck.gl overlay for 3D visualization. Located in `/frontend`
+**Frontend:** React 19 + TypeScript + Vite, MapLibre GL JS for base 2D/3D map rendering. PMTiles for serverless vector tiles. Blueprint JS for UI components. Located in `/frontend`
 
-**Backend:** FastAPI (Python) serving tiles via TiTiler and Martin (Rust tile server). Supabase (managed PostgreSQL + PostGIS) for spatial data, with DuckDB for reading Overture Parquet files directly from S3. Located in `/backend`
+**Backend:** FastAPI (Python) for future texture generation API. Currently minimal - no tile server needed (PMTiles handles everything statically). Located in `/backend`
+
+**Database:** Supabase (PostgreSQL + PostGIS) reserved for future features (generated textures storage, user data). Currently not used for base map data.
+
+**Map Data:** PMTiles format - pre-generated vector tiles served statically via HTTP Range Requests. No database ingestion needed.
 
 # Backend Rules (FastAPI)
 
-- **Structure:** Follow a domain-driven structure (e.g., `routers/`, `schemas/`, `services/`).
-- **Pydantic:** Use Pydantic v2. Always use `BaseModel` for request/response schemas.
-- **Database:** Use Supabase client for all database operations.
-- **Async:** Use `async def` for all route handlers and DB calls.
-- **Type Hinting:** Strictly use Python type hints (`str`, `int`, `List`, `Optional`) and Pydantic models.
-- **Error Handling:** Use `HTTPException` for errors. Don't return plain dictionaries for errors.
+- **Structure:** Follow domain-driven structure (`routers/`, `schemas/`, `services/`)
+- **Pydantic:** Use Pydantic v2. Always use `BaseModel` for request/response schemas
+- **Database:** Use Supabase client for future texture storage operations
+- **Async:** Use `async def` for all route handlers
+- **Type Hinting:** Strictly use Python type hints (`str`, `int`, `List`, `Optional`)
+- **Error Handling:** Use `HTTPException` for errors
 
 # Frontend Rules (React + Vite)
 
-- **Component Style:** Functional components only. Use `const` + arrow functions.
-- **TypeScript:** strict mode. No `any`. Define interfaces for all Props.
-- **State Management (The Trinity):**
-  - **Server State:** Use `tanstack-query`. Avoid `useEffect` for fetching.
-  - **Map/High-Frequency State:** Use `zustand` (e.g., zoom level, hover ID). **Do not** use `useContext` for rapidly changing values.
-  - **Static Global State:** Use `useContext` only for low-frequency updates (e.g., Theme, User Auth).
-- **Effects & Cleanup:** All `useEffect` hooks initializing 3D contexts (MapLibre/Deck.gl) **must** return a cleanup function (`map.remove()`) to prevent WebGL crashes in Strict Mode.
-- **Styling:** Use Tailwind CSS utility classes. Avoid CSS-in-JS unless necessary for dynamic values.
-- **Performance:** Keep components pure. Move heavy GeoJSON processing to Web Workers or wrap in `useMemo`.
-- **Directory Structure:** Feature-based folders (e.g., `src/features/map/components`, `src/features/auth/hooks`).
+- **Component Style:** Functional components only. Use `const` + arrow functions
+- **TypeScript:** strict mode. No `any`. Define interfaces for all Props
+- **State Management:**
+  - **Map State:** Use `zustand` for map controls, layer visibility, styling (e.g., `mapStore.ts`)
+  - **Server State:** Use `tanstack-query` for future API calls (texture generation)
+  - **Avoid:** Do NOT use `useContext` for rapidly changing map state
+- **Effects & Cleanup:** All `useEffect` hooks initializing MapLibre **must** return a cleanup function (`map.remove()`) to prevent WebGL crashes in Strict Mode
+- **UI Framework:** Use Blueprint JS (`@blueprintjs/core`) for all UI components:
+  - `Card`, `Button`, `Switch`, `HTMLSelect`, `Slider`, `Divider`, `H5`
+  - Use `bp5-dark` class on root for dark theme, `bp5-light` wrapper for light cards
+  - Tailwind CSS only for layout (flex, grid, positioning), NOT for component styling
+- **Performance:** Keep components pure. Use `useMemo` for expensive calculations
+- **Directory Structure:** 
+  - `src/features/map/` - Map page and map-specific components
+  - `src/features/map/hooks/` - Custom hooks (useMapUpdates)
+  - `src/features/map/utils/` - Map utility functions
+  - `src/components/ui/` - Reusable UI components (Button, Checkbox, ColorPicker, Select, Slider)
+  - `src/stores/` - Zustand stores for global state
+  - `src/styles/map/` - MapLibre layer styles and configurations
+  - `src/api/` - Future API client and endpoints
 
-### API & Data Fetching Strategy
+### Map Rendering Architecture (PMTiles + MapLibre)
 
-- **Pattern:** Functional Modules + Custom Query Hooks (No Class-based Repositories).
-- **Tooling:** Use `tanstack-query` (v5) for all server state.
-- **Structure:**
-  - `src/api/client.ts`: Single axios/fetch instance with interceptors (Auth, Base URL).
-  - `src/api/endpoints/`: Standalone async functions typed with TypeScript interfaces.
-    - *Example:* `export const getBuildings = async (id: string) => { ... }`
-  - `src/hooks/queries/`: Custom hooks wrapping `useQuery`.
-    - *Example:* `useBuildings(id)`
-- **Rules:**
-  - **Never** call `fetch`/`axios` directly in components.
-  - **Never** use `useEffect` for data fetching (creates waterfalls).
-  - **Always** separate the *API definition* (how to get data) from the *State Logic* (caching/loading).
-  - **Type Safety:** Ensure API response types exactly match Pydantic schemas from Backend.
+**Current Implementation:**
+- **Base Layer:** PMTiles vector tiles loaded directly via `pmtiles://` protocol
+- **No Tile Server:** PMTiles uses HTTP Range Requests for efficient static serving
+- **3D Buildings:** MapLibre GL JS fill-extrusion layers (no deck.gl needed yet)
+- **Dynamic Styling:** Layer visibility and building height controlled via zustand store
+
+**Key Files:**
+- `frontend/src/features/map/MapView.tsx` - MapLibre initialization and layer management
+- `frontend/src/features/map/hooks/useMapUpdates.ts` - Custom hook for map style updates
+- `frontend/src/features/map/utils/mapUpdaters.ts` - Layer update utility functions
+- `frontend/src/features/map/utils/mapCalculations.ts` - Map calculation utilities
+- `frontend/src/config/mapSources.ts` - PMTiles source definitions
+- `frontend/src/styles/map/` - Map layer styles and configurations
+- `frontend/src/stores/mapStore.ts` - Map state (layer visibility, styling, building height)
+
+**Layer Management Pattern:**
+```typescript
+// In MapView.tsx
+useEffect(() => {
+  if (!map.current) return;
+  
+  // Update layer visibility when store changes
+  const layerIds = ['buildings-fill', 'buildings-3d'];
+  layerIds.forEach(id => {
+    if (map.current?.getLayer(id)) {
+      map.current.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+    }
+  });
+}, [visibleLayers.buildings]);
+```
+
+### UI Layout Pattern (Blueprint JS + Floating Cards)
+
+**Current Layout:**
+- Dark background (`bp5-dark` on root)
+- Floating white cards (top-left) with `bp5-light` wrapper
+- Collapsible settings panel triggered by Button
+- Cards use `elevation={3}` for depth
+
+**Components:**
+- `LayerToggle.tsx` - Layer visibility toggle controls
+- `StyleSelector.tsx` - Styling controls for buildings, roads, landuse, background
+- `MapPage.tsx` - Layout container with floating cards
+
+**Style Pattern:**
+```tsx
+<div className="bp5-dark relative w-full h-screen">
+  <MapView />
+  <div className="absolute top-4 left-4 flex flex-col gap-3" style={{ zIndex: 1000 }}>
+    <Card elevation={3} style={{ width: '320px', backgroundColor: 'white' }}>
+      <div className="bp5-light">
+        <LayerToggle />
+      </div>
+    </Card>
+  </div>
+</div>
+```
 
 # General Coding Principles
 
-- **Clean Code:** Functions should do one thing. Keep files under 200 lines where possible.
+- **Clean Code:** Functions should do one thing. Keep files under 200 lines where possible
 - **Comments Policy:**
   - **NO docstrings** on functions/classes/modules where the name is self-explanatory
   - Only add comments to explain **WHY**, never **WHAT**
@@ -63,154 +121,115 @@ NeuralAtlas is a 3D geospatial visualization platform for generating photorealis
   - TS/JS: `camelCase` for variables/functions, `PascalCase` for components
   - Examples: `get_buildings()` not `get()`, `calculate_building_height()` not `calc()`
 
-**ML Pipeline:** PyTorch for Stable Diffusion + ControlNet texture generation. Strategy: Generate archetype textures (e.g., "50 variations of Munich House") and reuse across similar buildings to control costs.
-
-**Data Sources:**
-
-- Building geometry: Overture Maps, OSM, regional datasets (LOD2 Gebäudeumringe, NYC 3D, 3D BAG Netherlands)
-- Satellite imagery: Sentinel-2, ESA Copernicus, USGS EarthExplorer
-- Terrain: Mapzen/AWS Terrain Tiles, SRTM
-- Context data: TUM GBA for building metadata
-
-### Current State
-
-- Frontend scaffolded with Vite + React + TypeScript (v19.2) + TanStack Query
-- Backend with FastAPI + Supabase client + Buildings API
-- Database schema in `supabase/schemas/` (source of truth)
-- Basic end-to-end flow working: Supabase → Backend → Frontend
-
-## Development Workflows
-
-### React Conventions
-
-- **Strict Mode enabled** (`main.tsx` wraps App in `<StrictMode>`) to ensure pure components
-- **State management:** Plan to use `useContext` for passing values through component trees
-- **Component purity:** Keep components pure; avoid side effects in render logic
-- **TypeScript:** All components use `.tsx` extension with strict type checking
-
 ## Key Design Decisions
 
-### Cost & Scale Strategy
+### PMTiles Serverless Architecture
 
-- **Archetype Generation:** Don't generate textures for all buildings. Create 50 variations per building type (e.g., "Munich Residential, 19th Century") and assign to similar structures
-- **Context-Aware Prompting:** Script identifies building context (location, style, era) and generates appropriate Stable Diffusion prompts
-- **ControlNet:** Maintains structural accuracy (window/door positions) while allowing creative facade generation
+**Why PMTiles:**
+- No tile server needed (Martin/TiTiler removed)
+- No database ingestion (direct S3 Parquet → PMTiles conversion)
+- HTTP Range Requests = efficient, scalable, cheap
+- Static hosting via CDN or local files
+
+**Workflow:**
+1. Extract Overture Maps Parquet data for region
+2. Convert to PMTiles using `tippecanoe` or `felt/tippecanoe`
+3. Serve PMTiles file statically (no backend needed)
+4. MapLibre loads tiles on-demand via `pmtiles://` protocol
+
+### Future Texture Generation Strategy
+
+**Cost & Scale:**
+- **Archetype Generation:** Create 50 variations per building type (e.g., "Munich Residential, 19th Century")
+- **Context-Aware Prompting:** Extract building context (location, style, era) → Stable Diffusion prompt
+- **ControlNet:** Maintain structural accuracy (window/door positions) while generating facade textures
+
+**Planned Workflow:**
+1. User clicks building on map
+2. Frontend sends building ID + context to FastAPI backend
+3. Backend generates texture via Stable Diffusion + ControlNet
+4. Backend uploads texture to Supabase Storage
+5. Backend returns texture URL
+6. Frontend renders building with custom texture (deck.gl overlay or MapLibre pattern)
+
+**Rendering Options:**
+- **Option A:** deck.gl GeoJsonLayer with custom textures (full 3D control)
+- **Option B:** MapLibre fill-extrusion with image patterns (lighter weight)
+- **Option C:** Load .glb/.gltf models with Three.js overlay (highest fidelity)
 
 ### Data Pipeline Flow
 
-1. Ingest building geometry from Overture/TUM (white box models)
-2. Extract context (location, type, era) via Python script
-3. Generate 2D facade snapshot for AI input
-4. Send to Stable Diffusion + ControlNet with contextual prompt (e.g., "Bavarian stucco facade, red tile roof, sunny day")
-5. Generate texture atlas and bake onto 3D model (.glb/.gltf format)
-6. Serve via TiTiler/Martin as vector tiles
-
-### Accuracy & Legal Considerations
-
-- Output **probability scores** instead of definitive facts (e.g., "85% sure this house is solar-ready")
-- Avoid legal liability by framing as estimates/predictions
-
-## Integration Points
-
-### Frontend-Backend Communication
-
-- Vector tiles served via Martin (Rust) connected to Supabase PostGIS
-- TiTiler for raster tile generation
-- 3D models delivered as .glb/.gltf files via Supabase Storage
-- Real-time streaming via MVT (Mapbox Vector Tiles)
-- Supabase Realtime for live data updates (optional)
-
-### Data Access Patterns
-
-- DuckDB queries Overture Parquet files directly from S3 (no full download needed)
-- Supabase PostGIS for spatial queries and tile generation
-- Martin connects to Supabase for zero-code tile serving (config file only)
-- Supabase client for authentication, real-time updates, and storage
-
-### Rendering Pipeline
-
-- MapLibre GL JS renders base 2D map
-- deck.gl overlays 3D buildings using `@deck.gl/mapbox` integration
-- Three.js handles custom 3D rendering for generated textures
+1. Download Overture Maps Parquet files for region
+2. Filter buildings, roads, landuse data
+3. Convert to GeoJSON or PMTiles format
+4. Serve statically - no database needed
+5. Future: Store generated textures in Supabase Storage, reference in PostGIS table
 
 ## File Structure Patterns
 
-- `supabase/schemas/*.sql` - **Blueprint/Source of truth** (00_types.sql, 01_tables.sql, etc.)
-- `supabase/migrations/*.sql` - **History** (auto-generated, read-only)
-- `frontend/src/main.tsx` - Entry point with StrictMode + TanStack Query
-- `frontend/src/App.tsx` - Main application component
-- `frontend/src/api/client.ts` - API client with TypeScript types
-- `backend/app/main.py` - FastAPI app with routers
-- `backend/app/database.py` - Supabase client singleton
-- `backend/app/schemas.py` - Pydantic models
-- `backend/app/api/routes/` - API endpoints by feature
+**Frontend:**
+- `src/features/map/MapPage.tsx` - Main map layout with floating UI cards
+- `src/features/map/MapView.tsx` - MapLibre map initialization and layer management
+- `src/features/map/LayerToggle.tsx` - Layer visibility toggle controls
+- `src/features/map/StyleSelector.tsx` - Styling controls (buildings, roads, landuse, background)
+- `src/stores/mapStore.ts` - Zustand store for map state (layers, styling, building height)
+- `src/config/mapSources.ts` - PMTiles source definitions
+- `src/styles/map/` - MapLibre layer definitions and styling configurations
+- `src/api/client.ts` - Future: API client for texture generation
 
-## Database Schema Management (Declarative Workflow)
+**Backend:**
+- `backend/app/main.py` - FastAPI app entry point
+- `backend/app/api/routes/` - Future: Texture generation endpoints
+- `backend/app/schemas.py` - Pydantic models for API requests/responses
+- `backend/app/services/` - Future: Stable Diffusion + ControlNet integration
 
-**CRITICAL**: We use a "Two-Tier" declarative system that separates Blueprint from History.
+**Database:**
+- `supabase/schemas/01_init.sql` - PostGIS extension setup
+- `supabase/schemas/02_map_config.sql` - Placeholder for future texture storage tables
+- **Note:** No base map data in database (PMTiles handles it)
 
-### Core Philosophy
+## Database Schema Management
 
-- **Blueprint** (`supabase/schemas/*.sql`): Source of truth describing desired database state
-- **History** (`supabase/migrations/*.sql`): Auto-generated change files for production safety
+**Current State:** Minimal database usage. PostGIS enabled for future features.
 
-### Configuration
+**Future Tables (not yet implemented):**
+- `generated_textures` - Store AI-generated building textures (URLs, metadata)
+- `custom_buildings` - User-created or modified buildings with custom geometry/textures
+- `texture_cache` - Archetype textures to reuse across similar buildings
 
-`supabase/config.toml` contains:
+**Schema Workflow:**
+1. Edit `supabase/schemas/*.sql` files (declarative, idempotent)
+2. User applies SQL via Supabase Dashboard (production-only workflow for now)
+3. Commit changes to source control
 
-```toml
-[db.migrations]
-enabled = true
-schema_paths = ["./schemas/*.sql"]
-```
+## Current Implementation Status
 
-### Workflow for AI (Production-Only, No Local CLI)
+✅ **Completed:**
+- PMTiles integration with MapLibre GL JS
+- Layer visibility controls (buildings, roads, landuse)
+- Dynamic styling (building height, colors, styles)
+- Blueprint JS UI with floating cards
+- Zustand state management for map controls
+- 3D building extrusions with height multiplier
 
-**Step 1: Modify Blueprint**
+🚧 **Not Yet Implemented:**
+- Texture generation backend (Stable Diffusion + ControlNet)
+- Building selection/click handlers
+- deck.gl overlay for textured buildings
+- Supabase Storage integration for textures
+- User authentication
+- Texture archetype caching
 
-- Read the relevant file in `supabase/schemas/` (e.g., `10_buildings.sql`)
-- Edit the CREATE definition directly (add columns, indexes, policies)
-- **Rule**: Do NOT write ALTER TABLE. Update as if creating from scratch
-- Use idempotent checks for functions/triggers: `DO $$ ... IF NOT EXISTS`
-- **Important**: Since no local testing, ensure SQL is syntactically correct
+## Development Workflow
 
-**Step 2: Instruct User to Apply to Production**
-
-- User copies the entire modified schema file
-- User pastes into Supabase SQL Editor (Dashboard)
-- User runs the SQL
-- **Why**: Idempotent statements (`CREATE TABLE IF NOT EXISTS`, `DO $$ IF NOT EXISTS`) allow safe re-runs
-
-**Step 3: Commit**
-
-- Commit the modified `schemas/` file as source of truth
-- No migration file needed for production-only workflow
-
-**Note**: When user eventually sets up local Supabase CLI, workflow will change to:
-
-1. Edit schemas/ → 2. `supabase db reset` → 3. `supabase db diff` → 4. Commit both
-
-### Critical Rules
-
-1. **Never Manual Migrations**: Never create/edit files in `supabase/migrations/` manually
-2. **Ordering**: Files in `schemas/` must be numbered (00_, 01_, 10_, 99_) for dependency order
-3. **Idempotency**: Use `IF NOT EXISTS` checks to prevent reset errors
-4. **Production Safety**: `supabase db reset` is dev only. Production uses generated migrations
-
-## Upcoming Implementation Tasks
-
-1. Install MapLibre GL JS + deck.gl for 3D visualization
-2. Configure Martin tile server to connect to Supabase
-3. Integrate TiTiler for raster tiles
-4. Implement DuckDB connector for Overture data
-5. Build context extraction script (location → style prompt)
-6. Integrate Stable Diffusion + ControlNet pipeline
-7. Implement archetype generation system
-8. Add .glb/.gltf texture baking workflow with Supabase Storage
+1. **Frontend Development:** `cd frontend && npm run dev`
+2. **Backend Development:** `cd backend && uvicorn app.main:app --reload` (currently minimal)
+3. **PMTiles Generation:** Use `tippecanoe` or `felt/tippecanoe` to convert GeoJSON → PMTiles
 
 ## Notes
 
-- Project uses React 19.2 (latest) with new features available
-- No React Compiler enabled (performance trade-off in dev mode)
-- Backend architecture fully planned but not yet implemented
-- Focus on MVP: Single city demo with archetype generation before scaling
+- React 19.2 with Strict Mode enabled
+- Blueprint JS components instead of shadcn/ui (desktop-like UI framework)
+- No tile server or database ingestion (PMTiles serverless approach)
+- Supabase reserved for future texture storage and user data
+- Focus: Get texture generation working before scaling to multiple cities

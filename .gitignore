@@ -63,3 +63,7 @@ logs/
 tmp/
 temp/
 *.tmp
+
+# Generated PMTiles data (can be regenerated)
+frontend/public/data/*.pmtiles
+frontend/public/data/*.geojson
