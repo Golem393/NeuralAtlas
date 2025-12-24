@@ -1,15 +1,14 @@
-from fastapi import APIRouter, HTTPException
-from app.schemas.map_config import MapConfigRequest, TileConfigResponse, LayerType
-from app.services.style_builder import StyleBuilder
-from app.database import supabase
+from fastapi import APIRouter
 
+from app.schemas.map_config import LayerType, MapConfigRequest, TileConfigResponse
+from app.services.style_builder import StyleBuilder
 
 router = APIRouter()
 
 
 @router.post("/configure", response_model=TileConfigResponse)
 async def configure_map(config: MapConfigRequest):
-    base_url = "http://localhost:3001" # martin server
+    base_url = "http://localhost:3001"  # martin server
 
     builder = StyleBuilder(base_url)
     style_json = builder.build(config)
@@ -23,8 +22,5 @@ async def configure_map(config: MapConfigRequest):
         enabled_layers.append(LayerType.LANDUSE)
 
     return TileConfigResponse(
-        tile_url=base_url,
-        style_json=style_json,
-        layers_enabled=enabled_layers
+        tile_url=base_url, style_json=style_json, layers_enabled=enabled_layers
     )
-        

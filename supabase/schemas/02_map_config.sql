@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS map_buildings (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     external_id TEXT UNIQUE NOT NULL, -- Overture GERS id
     source VARCHAR(50) NOT NULL,
-    building_class VARCHAR(50), 
+    building_class VARCHAR(50),
     geometry GEOMETRY(MULTIPOLYGON, 4326) NOT NULL,
     height FLOAT,
     num_floors INTEGER,

@@ -8,7 +8,7 @@ import { useMapStore } from '@/stores/mapStore';
 export const MapView = (): JSX.Element => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
-  
+
   const { selectedSource, layers, style, bbox } = useMapStore();
   const { mutate: configureMap, data: tileConfig } = useMapConfiguration();
 
@@ -112,8 +112,8 @@ export const MapView = (): JSX.Element => {
   };
 
   return (
-    <div 
-      ref={mapContainer} 
+    <div
+      ref={mapContainer}
       className="w-full h-full"
       style={{ minHeight: '600px' }}
     />

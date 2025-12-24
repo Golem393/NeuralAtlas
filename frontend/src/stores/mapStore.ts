@@ -7,7 +7,7 @@ interface MapState {
   layers: LayerConfig;
   style: MapStyleConfig;
   bbox: [number, number, number, number];
-  
+
   setSource: (source: DataSource) => void;
   setLayers: (layers: LayerConfig) => void;
   setStyle: (style: MapStyleConfig) => void;
@@ -28,7 +28,7 @@ export const useMapStore = create<MapState>((set : (partial: Partial<MapState>) 
     water_color: '#a0c8f0',
   },
   bbox: [11.4, 48.1, 11.7, 48.2], // Munich area
-  
+
   setSource: (source : DataSource) => set({ selectedSource: source }),
   setLayers: (layers: LayerConfig) => set({ layers }),
   setStyle: (style: MapStyleConfig) => set({ style }),

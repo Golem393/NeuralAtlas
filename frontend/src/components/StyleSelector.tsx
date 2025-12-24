@@ -34,7 +34,7 @@ export const StyleSelector = ({ style, onStyleChange }: StyleSelectorProps) => {
           </button>
         ))}
       </div>
-      
+
       <div className="mt-4 space-y-2">
         <label className="block text-xs">
           Background

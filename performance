@@ -20,9 +20,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Map data doesn't change often. Don't refetch it when window refocuses.
-      refetchOnWindowFocus: false, 
+      refetchOnWindowFocus: false,
       // Keep data "fresh" for 5 minutes (prevents spamming your backend)
-      staleTime: 5 * 60 * 1000, 
+      staleTime: 5 * 60 * 1000,
       // If a request fails, don't retry immediately (saves API costs)
       retry: 1,
     },

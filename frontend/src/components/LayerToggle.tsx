@@ -13,7 +13,7 @@ export const LayerToggle = ({ layers, onLayerChange }: LayerToggleProps) => {
   return (
     <div className="bg-white p-4 rounded-lg shadow-md space-y-2">
       <h3 className="text-sm font-medium mb-3">Visible Layers</h3>
-      
+
       <label className="flex items-center gap-2">
         <input
           type="checkbox"
