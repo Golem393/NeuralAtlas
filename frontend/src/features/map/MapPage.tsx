@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MapView } from './MapView';
 import { LayerToggle } from './LayerToggle';
 import { StyleSelector } from './StyleSelector';
+import { LocationSelector } from './LocationSelector';
 import { Menu, ChevronLeft } from 'lucide-react';
 
 export const MapPage = () => {
@@ -35,6 +36,8 @@ export const MapPage = () => {
 
           {/* Layers & Styles */}
           <div className="glass rounded-xl p-3 animate-fade-in space-y-4">
+            <LocationSelector />
+            <div className="h-px bg-border" />
             <LayerToggle />
             <div className="h-px bg-border" />
             <StyleSelector />

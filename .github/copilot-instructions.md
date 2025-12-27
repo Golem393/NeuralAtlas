@@ -34,10 +34,10 @@ NeuralAtlas is a 3D geospatial visualization platform for generating photorealis
   - **Server State:** Use `tanstack-query` for future API calls (texture generation)
   - **Avoid:** Do NOT use `useContext` for rapidly changing map state
 - **Effects & Cleanup:** All `useEffect` hooks initializing MapLibre **must** return a cleanup function (`map.remove()`) to prevent WebGL crashes in Strict Mode
-- **UI Framework:** Use Blueprint JS (`@blueprintjs/core`) for all UI components:
-  - `Card`, `Button`, `Switch`, `HTMLSelect`, `Slider`, `Divider`, `H5`
-  - Use `bp5-dark` class on root for dark theme, `bp5-light` wrapper for light cards
-  - Tailwind CSS only for layout (flex, grid, positioning), NOT for component styling
+- **UI Framework:** Custom lightweight UI components in `src/components/ui/`:
+  - `Button`, `Checkbox`, `Select`, `Slider`, `ColorPicker`
+  - Tailwind CSS for styling and layout (flex, grid, positioning, colors)
+  - Components are self-contained with minimal dependencies
 - **Performance:** Keep components pure. Use `useMemo` for expensive calculations
 - **Directory Structure:** 
   - `src/features/map/` - Map page and map-specific components
@@ -81,30 +81,33 @@ useEffect(() => {
 }, [visibleLayers.buildings]);
 ```
 
-### UI Layout Pattern (Blueprint JS + Floating Cards)
+### UI Layout Pattern (Custom Components + Floating Sidebar)
 
 **Current Layout:**
-- Dark background (`bp5-dark` on root)
-- Floating white cards (top-left) with `bp5-light` wrapper
-- Collapsible settings panel triggered by Button
-- Cards use `elevation={3}` for depth
+- Full-screen map background
+- Floating white sidebar (top-left) with rounded corners and shadow
+- Collapsible sidebar with toggle button
+- Custom UI components with Tailwind styling
 
 **Components:**
-- `LayerToggle.tsx` - Layer visibility toggle controls
-- `StyleSelector.tsx` - Styling controls for buildings, roads, landuse, background
-- `MapPage.tsx` - Layout container with floating cards
+- `LayerToggle.tsx` - Checkbox controls for layer visibility
+- `StyleSelector.tsx` - Select, Slider, ColorPicker for styling
+- `MapPage.tsx` - Layout container with collapsible sidebar
+- `src/components/ui/*` - Reusable Button, Checkbox, Select, Slider, ColorPicker
 
 **Style Pattern:**
 ```tsx
-<div className="bp5-dark relative w-full h-screen">
+<div className="relative w-full h-screen">
   <MapView />
-  <div className="absolute top-4 left-4 flex flex-col gap-3" style={{ zIndex: 1000 }}>
-    <Card elevation={3} style={{ width: '320px', backgroundColor: 'white' }}>
-      <div className="bp5-light">
+  {sidebarOpen && (
+    <div className="absolute top-[10px] left-[10px] w-[300px] bg-white p-[15px] rounded-[5px] shadow-[0_2px_10px_rgba(0,0,0,0.1)]">
+      <Button onClick={() => setSidebarOpen(false)} className="mb-[10px]">Close</Button>
+      <div className="flex flex-col gap-[20px]">
         <LayerToggle />
+        <StyleSelector />
       </div>
-    </Card>
-  </div>
+    </div>
+  )}
 </div>
 ```
 

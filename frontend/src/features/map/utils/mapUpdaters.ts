@@ -63,3 +63,10 @@ export const updateLanduseStyle = (map: maplibregl.Map, style: LanduseStyle) => 
     map.setPaintProperty(LAYER_IDS.LANDUSE_FILL, 'fill-color', config.color);
   }
 };
+
+export const updateTerrainExaggeration = (map: maplibregl.Map, exaggeration: number) => {
+    map.setTerrain({
+      source: 'terrarium-terrain',
+      exaggeration,
+    });
+};

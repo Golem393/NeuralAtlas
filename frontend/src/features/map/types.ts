@@ -1,3 +1,8 @@
+export enum Location {
+  Munich = 'munich',
+  Cortina = 'cortina',
+}
+
 export enum BuildingStyle {
   Realistic = 'realistic',
   Flat = 'flat',
@@ -25,6 +30,7 @@ export enum LayerType {
   Buildings = 'buildings',
   Roads = 'roads',
   Landuse = 'landuse',
+  Terrain = 'terrain',
 }
 
 export const LAYER_MAPPING = {

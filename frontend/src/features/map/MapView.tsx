@@ -1,20 +1,20 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { JSX } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 import { useMapStore } from '@/stores/mapStore';
-import { PMTILES_SOURCES } from '@/config/mapSources';
+import { PMTILES_SOURCES, LOCATION_CONFIG } from '@/config/mapSources';
 import { createMapLayers } from '@/styles/map';
 import { MAP_CONFIG } from './types';
-import { calculateCenter } from './utils/mapCalculations';
 import { useMapUpdates } from './hooks/useMapUpdates';
+import { useTerrainSetup } from './hooks/useTerrainSetup'; 
 
 export const MapView = (): JSX.Element => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
-  const mapLoaded = useRef(false);
-  const { bbox } = useMapStore();
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const { location } = useMapStore();
 
   // Register PMTiles protocol once
   useEffect(() => {
@@ -30,6 +30,9 @@ export const MapView = (): JSX.Element => {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
+    const locationConfig = LOCATION_CONFIG[location];
+    const sources = PMTILES_SOURCES[location];
+
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: {
@@ -37,40 +40,42 @@ export const MapView = (): JSX.Element => {
         sources: {
           buildings: {
             type: 'vector',
-            url: PMTILES_SOURCES.buildings,
+            url: sources.buildings,
           },
           roads: {
             type: 'vector',
-            url: PMTILES_SOURCES.roads,
+            url: sources.roads,
           },
           landuse: {
             type: 'vector',
-            url: PMTILES_SOURCES.landuse,
+            url: sources.landuse,
           },
         },
         layers: createMapLayers(),
       },
-      center: calculateCenter(bbox),
-      zoom: MAP_CONFIG.defaultZoom,
+      center: locationConfig.center,
+      zoom: locationConfig.zoom,
       pitch: MAP_CONFIG.defaultPitch,
       bearing: MAP_CONFIG.defaultBearing,
     });
 
     map.current.on('load', () => {
-      mapLoaded.current = true;
+      console.log('Map load event fired!');
+      setMapLoaded(true);
     });
 
     return () => {
       if (map.current) {
         map.current.remove();
         map.current = null;
-        mapLoaded.current = false;
+        setMapLoaded(false);
       }
     };
-  }, [bbox]);
+  }, [location]);
 
   // Handle all map style updates
-  useMapUpdates(map, mapLoaded);
+  const terrainSourceLoaded = useTerrainSetup(map, mapLoaded);
+  useMapUpdates(map, mapLoaded, terrainSourceLoaded);
 
   return <div ref={mapContainer} className="absolute top-0 left-0 w-full h-full" />;
 };

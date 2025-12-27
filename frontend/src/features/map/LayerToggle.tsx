@@ -1,6 +1,6 @@
 import { useMapStore } from '@/stores/mapStore';
 import { LayerType } from './types';
-import { Route, Building2, Trees } from 'lucide-react';
+import { Route, Building2, Trees, Mountain } from 'lucide-react';
 import { Toggle } from '@/components/ui/Toggle';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ const layers = [
   { id: LayerType.Roads, label: 'Roads', icon: Route },
   { id: LayerType.Buildings, label: 'Buildings', icon: Building2 },
   { id: LayerType.Landuse, label: 'Land Use', icon: Trees },
+  { id: LayerType.Terrain, label: 'Terrain', icon: Mountain},
 ];
 
 export const LayerToggle = () => {

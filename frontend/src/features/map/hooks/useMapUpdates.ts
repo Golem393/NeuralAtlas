@@ -9,11 +9,13 @@ import {
   updateBuildingHeight,
   updateRoadStyle,
   updateLanduseStyle,
+  updateTerrainExaggeration,
 } from '../utils/mapUpdaters';
 
 export const useMapUpdates = (
   map: MutableRefObject<maplibregl.Map | null>,
-  mapLoaded: MutableRefObject<boolean>
+  mapLoaded: boolean,
+  terrainSourceLoaded: boolean
 ) => {
   const {
     visibleLayers,
@@ -23,11 +25,12 @@ export const useMapUpdates = (
     buildingHeight,
     roadStyle,
     landuseStyle,
+    terrainExaggeration,
   } = useMapStore();
 
   // Update map style (background color)
   useEffect(() => {
-    if (!map.current || !mapLoaded.current) return;
+    if (!map.current || !mapLoaded) return;
 
     const bgColor = mapStyle === MapStyle.Dark ? '#1a1a2e' : '#f0f0f0';
     if (map.current.getLayer('background')) {
@@ -37,7 +40,7 @@ export const useMapUpdates = (
 
   // Update background color
   useEffect(() => {
-    if (!map.current || !mapLoaded.current) return;
+    if (!map.current || !mapLoaded) return;
 
     if (map.current.getLayer('background')) {
       map.current.setPaintProperty('background', 'background-color', backgroundColor);
@@ -46,7 +49,7 @@ export const useMapUpdates = (
 
   // Update layer visibility
   useEffect(() => {
-    if (!map.current || !mapLoaded.current) return;
+    if (!map.current || !mapLoaded) return;
 
     Object.entries(visibleLayers).forEach(([layer, visible]) => {
       const layerIds = LAYER_MAPPING[layer as keyof typeof LAYER_MAPPING] || [];
@@ -58,7 +61,7 @@ export const useMapUpdates = (
 
   // Update building styles
   useEffect(() => {
-    if (!map.current || !mapLoaded.current || !visibleLayers.buildings) return;
+    if (!map.current || !mapLoaded || !visibleLayers.buildings) return;
 
     updateBuildingStyle(map.current, buildingStyle);
     updateBuildingHeight(map.current, buildingHeight);
@@ -66,15 +69,25 @@ export const useMapUpdates = (
 
   // Update road style
   useEffect(() => {
-    if (!map.current || !mapLoaded.current || !visibleLayers.roads) return;
+    if (!map.current || !mapLoaded || !visibleLayers.roads) return;
 
     updateRoadStyle(map.current, roadStyle);
   }, [roadStyle, visibleLayers.roads, map, mapLoaded]);
 
   // Update landuse style
   useEffect(() => {
-    if (!map.current || !mapLoaded.current || !visibleLayers.landuse) return;
+    if (!map.current || !mapLoaded || !visibleLayers.landuse) return;
 
     updateLanduseStyle(map.current, landuseStyle);
   }, [landuseStyle, visibleLayers.landuse, map, mapLoaded]);
+
+  // Update terrain
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !terrainSourceLoaded) return;
+    if (visibleLayers.terrain){
+      updateTerrainExaggeration(map.current, terrainExaggeration);
+    } else {
+      map.current.setTerrain(null);
+    }
+  }, [terrainExaggeration, visibleLayers.terrain, map, mapLoaded, terrainSourceLoaded]);
 };
