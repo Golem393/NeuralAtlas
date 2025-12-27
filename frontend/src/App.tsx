@@ -1,7 +1,7 @@
-import { MapPage } from './features/map/MapPage'
+import { MapPage } from './features/map/MapPage';
 
 function App() {
-  return <MapPage />
+  return <MapPage />;
 }
 
-export default App
+export default App;

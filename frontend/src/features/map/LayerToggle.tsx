@@ -1,10 +1,13 @@
 import { useMapStore } from '@/stores/mapStore';
-import { Checkbox } from '@/components/ui/Checkbox';
+import { LayerType } from './types';
+import { Route, Building2, Trees } from 'lucide-react';
+import { Toggle } from '@/components/ui/Toggle';
+import { cn } from '@/lib/utils';
 
 const layers = [
-  { id: 'buildings' as const, label: 'Buildings' },
-  { id: 'roads' as const, label: 'Roads' },
-  { id: 'landuse' as const, label: 'Land Use' },
+  { id: LayerType.Roads, label: 'Roads', icon: Route },
+  { id: LayerType.Buildings, label: 'Buildings', icon: Building2 },
+  { id: LayerType.Landuse, label: 'Land Use', icon: Trees },
 ];
 
 export const LayerToggle = () => {
@@ -12,15 +15,31 @@ export const LayerToggle = () => {
 
   return (
     <div>
-      <h3 className="mb-[10px] text-[14px]">Layers</h3>
-      {layers.map((layer) => (
-        <Checkbox
-          key={layer.id}
-          label={layer.label}
-          checked={visibleLayers[layer.id]}
-          onChange={() => toggleLayer(layer.id)}
-        />
-      ))}
+      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 px-1">
+        Layers
+      </h3>
+      <div className="flex flex-col gap-2">
+        {layers.map(({ id, label, icon: Icon }) => {
+          const isActive = visibleLayers[id];
+
+          return (
+            <button
+              key={id}
+              onClick={() => toggleLayer(id)}
+              className={cn(
+                'flex items-center gap-3 p-3 rounded-lg transition-all duration-200',
+                isActive
+                  ? 'bg-primary text-primary-foreground glow-sm'
+                  : 'bg-secondary/50 text-foreground hover:bg-secondary'
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="text-sm font-medium">{label}</span>
+              <Toggle active={isActive} />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };

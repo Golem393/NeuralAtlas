@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { useMapStore } from '@/stores/mapStore';
-import { LAYER_MAPPING } from '../types';
+import { LAYER_MAPPING, MapStyle } from '../types';
 import {
   updateLayerVisibility,
   updateBuildingStyle,
@@ -18,16 +18,27 @@ export const useMapUpdates = (
   const {
     visibleLayers,
     backgroundColor,
+    mapStyle,
     buildingStyle,
     buildingHeight,
     roadStyle,
     landuseStyle,
   } = useMapStore();
 
+  // Update map style (background color)
+  useEffect(() => {
+    if (!map.current || !mapLoaded.current) return;
+
+    const bgColor = mapStyle === MapStyle.Dark ? '#1a1a2e' : '#f0f0f0';
+    if (map.current.getLayer('background')) {
+      map.current.setPaintProperty('background', 'background-color', bgColor);
+    }
+  }, [mapStyle, map, mapLoaded]);
+
   // Update background color
   useEffect(() => {
     if (!map.current || !mapLoaded.current) return;
-    
+
     if (map.current.getLayer('background')) {
       map.current.setPaintProperty('background', 'background-color', backgroundColor);
     }

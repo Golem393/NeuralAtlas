@@ -1,40 +1,40 @@
-export const BACKGROUND_COLOR = '#f0f0f0';
+export const BACKGROUND_COLOR = '#1a1a2e';
 
 export const LANDUSE_COLORS = {
-  forest: '#c6e8b3',
-  grass: '#d4f1c5',
-  park: '#c8e6a5',
-  water: '#a8d5e2',
-  residential: '#f0ebe0',
-  commercial: '#f5d5d0',
-  industrial: '#e8dcd0',
-  default: '#e0e0e0',
+  forest: '#2d5a3f',
+  grass: '#3a6b4a',
+  park: '#3d7a4f',
+  water: '#1e4a6f',
+  residential: '#2a2d3a',
+  commercial: '#3a2d3a',
+  industrial: '#4a3d3a',
+  default: '#252530',
 };
 
 export const ROAD_COLORS = {
   motorway: '#ff8c69',
   trunk: '#ffa07a',
   primary: '#ffb380',
-  secondary: '#ffd4a3',
-  tertiary: '#ffe5c2',
-  default: '#d0d0d0',
+  secondary: '#c4c4d4',
+  tertiary: '#a0a0b0',
+  default: '#808090',
 };
 
 export const ROAD_WIDTHS = {
-  motorway: 4,
-  trunk: 3,
-  primary: 2.5,
-  secondary: 2,
-  tertiary: 1.5,
-  default: 1,
+  motorway: 6,
+  trunk: 5,
+  primary: 4,
+  secondary: 3,
+  tertiary: 2,
+  default: 1.5,
 };
 
 export const BUILDING_COLORS = {
-  fill: '#d4d4d8',
-  extrusion: '#e4e4e7',
+  fill: '#3a4a5a',
+  extrusion: '#4a5a6a',
 };
 
 export const BUILDING_HEIGHT = {
-  default: 6,
+  default: 8,
   metersPerFloor: 3.5,
 };

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BuildingStyle, RoadStyle, LanduseStyle } from '@/features/map/types';
+import { BuildingStyle, RoadStyle, LanduseStyle, MapStyle, LayerType } from '@/features/map/types';
 
 interface MapState {
   bbox: [number, number, number, number];
@@ -9,13 +9,15 @@ interface MapState {
     landuse: boolean;
   };
   backgroundColor: string;
+  mapStyle: MapStyle;
   buildingStyle: BuildingStyle;
   roadStyle: RoadStyle;
   landuseStyle: LanduseStyle;
-  buildingHeight: number;  // Height multiplier
+  buildingHeight: number; // Height multiplier
   setBbox: (bbox: [number, number, number, number]) => void;
-  toggleLayer: (layer: 'buildings' | 'roads' | 'landuse') => void;
+  toggleLayer: (layer: LayerType) => void;
   setBackgroundColor: (color: string) => void;
+  setMapStyle: (style: MapStyle) => void;
   setBuildingStyle: (style: BuildingStyle) => void;
   setRoadStyle: (style: RoadStyle) => void;
   setLanduseStyle: (style: LanduseStyle) => void;
@@ -29,19 +31,22 @@ export const useMapStore = create<MapState>((set) => ({
     roads: true,
     landuse: true,
   },
-  backgroundColor: '#f0f0f0',
-  buildingStyle: 'realistic',
-  roadStyle: 'default',
-  landuseStyle: 'vibrant',
+  backgroundColor: '#1a1a2e',
+  mapStyle: MapStyle.Dark,
+  buildingStyle: BuildingStyle.Realistic,
+  roadStyle: RoadStyle.Default,
+  landuseStyle: LanduseStyle.Vibrant,
   buildingHeight: 1.0,
   setBbox: (bbox) => set({ bbox }),
-  toggleLayer: (layer) => set((state) => ({
-    visibleLayers: {
-      ...state.visibleLayers,
-      [layer]: !state.visibleLayers[layer],
-    },
-  })),
+  toggleLayer: (layer) =>
+    set((state) => ({
+      visibleLayers: {
+        ...state.visibleLayers,
+        [layer]: !state.visibleLayers[layer],
+      },
+    })),
   setBackgroundColor: (color) => set({ backgroundColor: color }),
+  setMapStyle: (style) => set({ mapStyle: style }),
   setBuildingStyle: (style) => set({ buildingStyle: style }),
   setRoadStyle: (style) => set({ roadStyle: style }),
   setLanduseStyle: (style) => set({ landuseStyle: style }),

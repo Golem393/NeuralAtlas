@@ -1,0 +1,30 @@
+@layer utilities {
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  .glass-hover {
+    @apply hover:bg-card/90 hover:border-border transition-all duration-200;
+  }
+
+  .glow {
+    box-shadow: 0 0 20px hsl(217 91% 60% / 0.3);
+  }
+
+  .glow-sm {
+    box-shadow: 0 0 10px hsl(217 91% 60% / 0.2);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

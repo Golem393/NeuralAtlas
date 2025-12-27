@@ -20,7 +20,7 @@ export const MapView = (): JSX.Element => {
   useEffect(() => {
     const protocol = new Protocol();
     maplibregl.addProtocol('pmtiles', protocol.tile);
-    
+
     return () => {
       maplibregl.removeProtocol('pmtiles');
     };
@@ -72,10 +72,5 @@ export const MapView = (): JSX.Element => {
   // Handle all map style updates
   useMapUpdates(map, mapLoaded);
 
-  return (
-    <div 
-      ref={mapContainer} 
-      className="absolute top-0 left-0 w-full h-full"
-    />
-  );
+  return <div ref={mapContainer} className="absolute top-0 left-0 w-full h-full" />;
 };
