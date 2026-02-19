@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { MapView } from './MapView';
-import { LayerToggle } from './LayerToggle';
-import { StyleSelector } from './StyleSelector';
-import { LocationSelector } from './LocationSelector';
+import { MapView } from './components/MapView';
+import { LayerToggle } from './components/LayerToggle';
+import { StyleSelector } from './components/StyleSelector';
+import { LocationSelector } from './components/LocationSelector';
 import { Menu, ChevronLeft } from 'lucide-react';
 
 export const MapPage = () => {

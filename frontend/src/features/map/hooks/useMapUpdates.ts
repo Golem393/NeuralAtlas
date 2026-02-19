@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import type maplibregl from 'maplibre-gl';
-import { useMapStore } from '@/stores/mapStore';
-import { LAYER_MAPPING, MapStyle } from '../types';
+import { useMapStore } from '../store';
+import { MapStyle } from '../types';
+import { LAYER_MAPPING } from '../config/mapConfig';
 import {
   updateLayerVisibility,
   updateBuildingStyle,

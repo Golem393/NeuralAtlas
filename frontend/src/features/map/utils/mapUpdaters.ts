@@ -1,7 +1,8 @@
 import type maplibregl from 'maplibre-gl';
-import { ROAD_STYLE_CONFIGS, LANDUSE_STYLE_CONFIGS } from '@/styles/map/styleConfigs';
-import { BUILDING_HEIGHT } from '@/styles/map/constants';
-import { BuildingStyle, RoadStyle, LanduseStyle, LAYER_IDS } from '../types';
+import { ROAD_STYLE_CONFIGS, LANDUSE_STYLE_CONFIGS } from '../styles/styleConfigs';
+import { BUILDING_HEIGHT } from '../styles/constants';
+import { BuildingStyle, RoadStyle, LanduseStyle } from '../types';
+import { LAYER_IDS } from '../config/mapConfig';
 
 export const updateLayerVisibility = (map: maplibregl.Map, layerId: string, visible: boolean) => {
   if (map.getLayer(layerId)) {

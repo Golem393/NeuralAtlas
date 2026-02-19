@@ -1,0 +1,2 @@
+wsl -d Ubuntu
+cd /mnt/c/Users/320277326/Desktop/NeuralAtlas/backend
