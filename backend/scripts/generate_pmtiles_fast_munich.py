@@ -1,103 +1,102 @@
 #!/usr/bin/env python3
 """
-Fast PMTiles generation script using overturemaps CLI
-Generates buildings, roads, and landuse layers for Munich region
+Pure Overture Maps Generator for munich
+Downloads forests (wood/landuse) + mountain rocks without using heavy satellite data.
+Fixed for latest overturemaps CLI (no --theme flag).
 """
 
 import subprocess
-import os
+import shutil
+import sys
 from pathlib import Path
 
-# Munich bounding box [west, south, east, north]
-MUNICH_BBOX = "11.36,48.06,11.72,48.25"
+# munich area [west, south, east, north]
+munich_BBOX = "11.36,48.06,11.72,48.25"
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "data" / "pmtiles"
 
-def run_command(cmd: list[str], description: str):
-    """Run a shell command with progress output"""
-    print(f"\n🚀 {description}...")
-    try:
-        subprocess.run(cmd, check=True)
-        print(f"✅ {description} completed")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ {description} failed: {e}")
-        raise
+def check_dependencies():
+    """Ensure tools are installed"""
+    if not shutil.which("overturemaps"):
+        print("❌ Missing 'overturemaps'. Run: pip install overturemaps")
+        sys.exit(1)
+    if not shutil.which("tippecanoe"):
+        print("❌ Missing 'tippecanoe'. Install via brew/apt.")
+        sys.exit(1)
 
-def generate_layer(layer_type: str, theme: str):
-    """Generate PMTiles for a specific Overture layer"""
-    print(f"\n{'='*60}")
-    print(f"Processing {layer_type.upper()} layer")
-    print(f"{'='*60}")
+def generate_layer(name: str, type_arg: str, min_z=10, max_z=15):
+    """
+    Download from Overture and convert to PMTiles
+    """
+    print(f"\n🏔️  Processing: {name.upper()}")
     
-    geojson_file = OUTPUT_DIR / f"munich_{layer_type}.geojson"
-    pmtiles_file = OUTPUT_DIR / f"munich_{layer_type}.pmtiles"
+    geojson_file = OUTPUT_DIR / f"munich_{name}.geojson"
+    pmtiles_file = OUTPUT_DIR / f"munich_{name}.pmtiles"
     
-    # Step 1: Download from Overture using overturemaps CLI
-    run_command(
-        [
-            "overturemaps",
-            "download",
-            "--bbox", MUNICH_BBOX,
-            "-f", "geojson",
-            "--type", theme,
-            "-o", str(geojson_file)
-        ],
-        f"Downloading {layer_type} from Overture Maps"
-    )
+    # 1. Download
+    cmd_dl = [
+        "overturemaps", "download",
+        "--bbox", munich_BBOX,
+        "-f", "geojsonseq",
+        "--type", type_arg,
+        "-o", str(geojson_file)
+    ]
     
-    # Step 2: Convert to PMTiles using tippecanoe
-    tippecanoe_args = [
+    try:
+        print(f"   ⬇️  Downloading type='{type_arg}'...")
+        subprocess.run(cmd_dl, check=True)
+    except subprocess.CalledProcessError:
+        print(f"   ❌ Download failed for {name}")
+        return
+
+    # 2. Convert to PMTiles
+    cmd_tile = [
         "tippecanoe",
         "-o", str(pmtiles_file),
-        "-Z", "10",  # Min zoom
-        "-z", "14",  # Max zoom
-        "-l", layer_type,
-        "--drop-densest-as-needed",
         "--force",
+        "--maximum-tile-bytes=1500000",
+        "--maximum-tile-features=300000",
+        "-P",
+        #"--drop-densest-as-needed",
+        "-l", name,           # Layer name inside the vector tile
+        #"-x", "sources",      # Remove metadata to save space
+        #"-x", "version",
+        #"-x", "update_time",
+        #"-x", "confidence",
         str(geojson_file)
     ]
+    # "-Z", str(min_z),
+    # "-z", str(max_z),
+
+
+    try:
+        print(f"   📦 Tiling {name}...")
+        subprocess.run(cmd_tile, check=True)
+        print(f"   ✅ Created {pmtiles_file.name}")
+    except subprocess.CalledProcessError:
+        print(f"   ❌ Tiling failed for {name}")
     
-    run_command(tippecanoe_args, f"Generating PMTiles for {layer_type}")
-    
-    # Clean up GeoJSON to save space
-    print(f"🗑️  Removing temporary GeoJSON file...")
-    geojson_file.unlink()
-    
-    print(f"✅ {layer_type} PMTiles ready: {pmtiles_file}")
+    # Cleanup
+    if geojson_file.exists():
+        geojson_file.unlink()
 
 def main():
-    print("🏗️  NeuralAtlas PMTiles Generator (Fast Mode)")
-    print(f"📍 Region: Munich ({MUNICH_BBOX})")
-    print(f"📂 Output: {OUTPUT_DIR}")
-    
-    # Create output directory
+    print("🚀 Starting Pure Overture Export...")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    
-    # Generate each layer
-    layers = [
-        ("buildings", "building"),
-        ("roads", "segment"),
-        ("landuse", "land_use")
-    ]
-    
-    for layer_name, theme in layers:
-        try:
-            generate_layer(layer_name, theme)
-        except Exception as e:
-            print(f"⚠️  Failed to generate {layer_name}: {e}")
-            continue
-    
-    print("\n" + "="*60)
-    print("🎉 All layers generated successfully!")
-    print("="*60)
-    print(f"\nGenerated files in {OUTPUT_DIR}:")
-    for file in OUTPUT_DIR.glob("*.pmtiles"):
-        size_mb = file.stat().st_size / (1024 * 1024)
-        print(f"  - {file.name} ({size_mb:.2f} MB)")
-    
-    print("\n📝 Next steps:")
-    print("  1. Move PMTiles files to frontend/public/data/")
-    print("  2. Update frontend/src/config/mapSources.ts with file paths")
-    print("  3. Run: npm run dev")
+    check_dependencies()
+
+    # 1. Buildings
+    generate_layer("buildings", "building", min_z=11, max_z=15)
+
+    # 2. Roads
+    generate_layer("roads", "segment", min_z=9, max_z=15)
+
+    # 3. Human Land Use (Parks, Residential, Managed Forests)
+    generate_layer("landuse_human", "land_use", min_z=8, max_z=14)
+
+    # 4. Physical Land (Natural Wood, Scrub, Bare Rock, Scree)
+    generate_layer("land_physical", "land", min_z=8, max_z=14)
+
+    print(f"\n🎉 Done! Files are in {OUTPUT_DIR}")
 
 if __name__ == "__main__":
     main()
