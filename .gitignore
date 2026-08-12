@@ -15,7 +15,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -67,3 +66,8 @@ temp/
 # Generated PMTiles data (can be regenerated)
 frontend/public/data/*.pmtiles
 frontend/public/data/*.geojson
+
+# Output of backend/scripts/generate_pmtiles_*.py
+# Regenerate with those scripts, or fetch from the testold branch:
+#   git show testold:data/pmtiles/<name>.pmtiles > frontend/public/data/<name>.pmtiles
+/data/
