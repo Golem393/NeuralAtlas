@@ -8,6 +8,7 @@ import { PMTILES_SOURCES, LOCATION_CONFIG, MAP_DEFAULT_ORIENTATION } from '../co
 import { createMapLayers } from '../styles/layers';
 import { useMapUpdates } from '../hooks/useMapUpdates';
 import { useTerrainSetup } from '../hooks/useTerrainSetup';
+import { useDeckGLLayers } from '../hooks/useDeckGLLayers'; 
 
 export const MapView = (): JSX.Element => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -79,6 +80,7 @@ export const MapView = (): JSX.Element => {
   // Handle all map style updates
   const terrainSourceLoaded = useTerrainSetup(map, mapLoaded);
   useMapUpdates(map, mapLoaded, terrainSourceLoaded);
+  useDeckGLLayers(map, mapLoaded);
 
   return <div ref={mapContainer} className="absolute top-0 left-0 w-full h-full" />;
 };
