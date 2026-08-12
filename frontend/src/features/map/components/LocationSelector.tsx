@@ -1,6 +1,6 @@
 import { MapPin } from 'lucide-react';
-import { useMapStore } from '@/stores/mapStore';
-import { Location } from '@/features/map/types';
+import { useMapStore } from '../store';
+import { Location } from '../types';
 import {
   Select,
   SelectContent,

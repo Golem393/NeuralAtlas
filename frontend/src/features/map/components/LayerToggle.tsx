@@ -1,5 +1,5 @@
-import { useMapStore } from '@/stores/mapStore';
-import { LayerType } from './types';
+import { useMapStore } from '../store';
+import { LayerType } from '../types';
 import { Route, Building2, Trees, Mountain } from 'lucide-react';
 import { Toggle } from '@/components/ui/Toggle';
 import { cn } from '@/lib/utils';

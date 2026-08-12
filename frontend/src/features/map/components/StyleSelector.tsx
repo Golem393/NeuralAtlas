@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useMapStore } from '@/stores/mapStore';
-import { MapStyle, BuildingStyle, RoadStyle, LanduseStyle } from '@/features/map/types';
+import { useMapStore } from '../store';
+import { MapStyle, BuildingStyle, RoadStyle, LanduseStyle } from '../types';
 import {
   Map,
   Layers,

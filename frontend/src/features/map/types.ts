@@ -1,3 +1,5 @@
+import type { Feature } from 'geojson';
+
 export enum Location {
   Munich = 'munich',
   Cortina = 'cortina',
@@ -33,21 +35,32 @@ export enum LayerType {
   Terrain = 'terrain',
 }
 
-export const LAYER_MAPPING = {
-  buildings: ['buildings-fill', 'buildings-3d'],
-  roads: ['roads-line'],
-  landuse: ['landuse-fill'],
-} as const;
+export interface SamplerConfig {
+  density: number;
+  minScale: number;
+  maxScale: number;
+  minRotation: number;
+  maxRotation: number;
+  maxObjects: number;
+  jitter: number;
+  variants?: number;
+  seed?: string;
+  elevationOffset?: number;
+}
 
-export const LAYER_IDS = {
-  BUILDINGS_FILL: LAYER_MAPPING.buildings[0],
-  BUILDINGS_3D: LAYER_MAPPING.buildings[1],
-  ROADS_LINE: LAYER_MAPPING.roads[0],
-  LANDUSE_FILL: LAYER_MAPPING.landuse[0],
-} as const;
+export interface DeckSourceConfig {
+  sourceId: string;
+  sourceLayer: string;
+  filter: (feature: Feature) => boolean;
+}
 
-export const MAP_CONFIG = {
-  defaultZoom: 12,
-  defaultPitch: 45,
-  defaultBearing: 0,
-} as const;
+export interface DeckLayerConfig {
+  id: string;
+  label: string;
+  type: 'scenegraph' | 'scatter';
+  sources: DeckSourceConfig[]; 
+  modelUrl: string;
+  samplerSettings: Partial<SamplerConfig>;
+  minZoom?: number;
+  maxZoom?: number;
+}

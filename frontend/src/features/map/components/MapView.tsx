@@ -3,12 +3,11 @@ import type { JSX } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
-import { useMapStore } from '@/stores/mapStore';
-import { PMTILES_SOURCES, LOCATION_CONFIG } from '@/config/mapSources';
-import { createMapLayers } from '@/styles/map';
-import { MAP_CONFIG } from './types';
-import { useMapUpdates } from './hooks/useMapUpdates';
-import { useTerrainSetup } from './hooks/useTerrainSetup'; 
+import { useMapStore } from '../store';
+import { PMTILES_SOURCES, LOCATION_CONFIG, MAP_DEFAULT_ORIENTATION } from '../config/mapConfig';
+import { createMapLayers } from '../styles/layers';
+import { useMapUpdates } from '../hooks/useMapUpdates';
+import { useTerrainSetup } from '../hooks/useTerrainSetup';
 
 export const MapView = (): JSX.Element => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -46,17 +45,21 @@ export const MapView = (): JSX.Element => {
             type: 'vector',
             url: sources.roads,
           },
-          landuse: {
+          landuse_human: {
             type: 'vector',
-            url: sources.landuse,
+            url: sources.landuse_human,
+          },
+          land_physical: {
+            type: 'vector',
+            url: sources.land_physical,
           },
         },
         layers: createMapLayers(),
       },
       center: locationConfig.center,
       zoom: locationConfig.zoom,
-      pitch: MAP_CONFIG.defaultPitch,
-      bearing: MAP_CONFIG.defaultBearing,
+      pitch: MAP_DEFAULT_ORIENTATION.defaultPitch,
+      bearing: MAP_DEFAULT_ORIENTATION.defaultBearing,
     });
 
     map.current.on('load', () => {

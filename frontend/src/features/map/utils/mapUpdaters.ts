@@ -1,7 +1,8 @@
 import type maplibregl from 'maplibre-gl';
-import { ROAD_STYLE_CONFIGS, LANDUSE_STYLE_CONFIGS } from '@/styles/map/styleConfigs';
-import { BUILDING_HEIGHT } from '@/styles/map/constants';
-import { BuildingStyle, RoadStyle, LanduseStyle, LAYER_IDS } from '../types';
+import { ROAD_STYLE_CONFIGS, LANDUSE_STYLE_CONFIGS } from '../styles/styleConfigs';
+import { BUILDING_HEIGHT } from '../styles/constants';
+import { BuildingStyle, RoadStyle, LanduseStyle } from '../types';
+import { LAYER_IDS } from '../config/mapConfig';
 
 export const updateLayerVisibility = (map: maplibregl.Map, layerId: string, visible: boolean) => {
   if (map.getLayer(layerId)) {
@@ -54,10 +55,14 @@ export const updateRoadStyle = (map: maplibregl.Map, style: RoadStyle) => {
 export const updateLanduseStyle = (map: maplibregl.Map, style: LanduseStyle) => {
   if (!map.getLayer(LAYER_IDS.LANDUSE_FILL)) return;
 
+  // land-physical follows visibility only; its per-class colouring (rock, scree,
+  // forest) is deliberately not overridden by the flat style presets.
   if (style === LanduseStyle.None) {
     updateLayerVisibility(map, LAYER_IDS.LANDUSE_FILL, false);
+    updateLayerVisibility(map, LAYER_IDS.LAND_PHYSICAL_FILL, false);
   } else {
     updateLayerVisibility(map, LAYER_IDS.LANDUSE_FILL, true);
+    updateLayerVisibility(map, LAYER_IDS.LAND_PHYSICAL_FILL, true);
     const config = LANDUSE_STYLE_CONFIGS[style];
     map.setPaintProperty(LAYER_IDS.LANDUSE_FILL, 'fill-opacity', config.opacity);
     map.setPaintProperty(LAYER_IDS.LANDUSE_FILL, 'fill-color', config.color);

@@ -18,8 +18,8 @@ export const createMapLayers = (): LayerSpecification[] => [
   {
     id: 'landuse-fill',
     type: 'fill',
-    source: 'landuse',
-    'source-layer': 'landuse',
+    source: 'landuse_human',
+    'source-layer': 'landuse_human',
     paint: {
       'fill-color': [
         'match',
@@ -41,6 +41,32 @@ export const createMapLayers = (): LayerSpecification[] => [
         LANDUSE_COLORS.default,
       ],
       'fill-opacity': 0.8,
+    },
+  },
+  {
+    id: 'land-physical-fill',
+    type: 'fill',
+    source: 'land_physical',
+    'source-layer': 'land_physical',
+    paint: {
+      'fill-color': [
+        'match',
+        ['get', 'class'],
+        'forest',
+        LANDUSE_COLORS.forest,
+        'wood',
+        LANDUSE_COLORS.forest,
+        'grass',
+        LANDUSE_COLORS.grass,
+        'scrub',
+        '#8B7355',
+        'rock',
+        '#A0A0A0',
+        'scree',
+        '#C0C0C0',
+        LANDUSE_COLORS.default,
+      ],
+      'fill-opacity': 1,
     },
   },
   {
