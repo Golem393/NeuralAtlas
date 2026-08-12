@@ -1,81 +1,62 @@
 # NeuralAtlas Backend
 
-FastAPI backend for the NeuralAtlas 3D geospatial visualization platform.
+FastAPI backend for NeuralAtlas.
 
-## Architecture
+## Status
 
-This backend serves as the data and processing layer for NeuralAtlas, providing:
+This is scaffolding. The backend currently serves **health check endpoints
+only**, and the frontend does not call it — the map viewer reads static PMTiles
+files directly and runs standalone.
 
-- **Vector Tiles**: Proxying to Martin (Rust tile server) for building geometry from PostGIS
-- **Raster Tiles**: Proxying to TiTiler for satellite imagery and terrain data
-- **AI Texture Generation**: API endpoints for Stable Diffusion + ControlNet texture generation
-- **Data Pipeline**: Integration with Overture Maps, OSM, and other geospatial data sources
+The one piece of real functionality here is `scripts/`, the offline pipeline
+that generates those PMTiles from Overture Maps data.
 
 ## Tech Stack
 
-- **FastAPI**: Modern async Python web framework
-- **Supabase**: Managed PostgreSQL + PostGIS spatial database
-- **Martin**: Rust-based vector tile server (external service)
-- **TiTiler**: Raster tile server (external service)
-- **DuckDB**: Direct Parquet file querying from S3
-- **PyTorch**: ML model inference (planned)
+- **FastAPI**: Async Python web framework
+- **Supabase**: Client configured in `app/database.py`, unused by the running app
+- **overturemaps CLI + tippecanoe**: Offline tile generation (`scripts/`)
 
 ## Project Structure
 
 ```text
 backend/
 ├── app/
-│   ├── __init__.py
 │   ├── main.py              # FastAPI application entry point
-│   ├── config.py            # Settings and configuration
+│   ├── config.py            # Settings (pydantic-settings)
+│   ├── database.py          # Supabase client factory (unused at runtime)
 │   └── api/
 │       └── routes/
-│           ├── health.py    # Health check endpoints
-│           └── tiles.py     # Tile proxy endpoints
-├── pyproject.toml           # Project dependencies and config
-├── .env.example             # Environment variables template
-└── README.md                # This file
+│           └── health.py    # Health check endpoints
+├── scripts/
+│   ├── generate_pmtiles_fast_munich.py
+│   └── generate_pmtiles_fast_cortina.py
+├── pyproject.toml
+└── .env.example
 ```
 
 ## Setup
 
-### Prerequisites
+Requires Python 3.11+.
 
-- Python 3.11+
-- Supabase account (free tier includes PostGIS)
-- Martin tile server (optional, for vector tiles)
-- TiTiler (optional, for raster tiles)
+```bash
+cd backend
+pip install -e ".[dev]"
+cp .env.example .env
+fastapi dev app/main.py
+```
 
-### Installation
+Available at:
 
-1. **Install dependencies**:
+- API: <http://localhost:8000>
+- Interactive docs: <http://localhost:8000/docs>
+- Alternative docs: <http://localhost:8000/redoc>
 
-   ```bash
-   cd backend
-   pip install -e ".[dev]"
-   ```
-
-2. **Configure environment**:
-
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-3. **Run development server**:
-
-   ```bash
-   fastapi dev app/main.py
-   ```
-
-   The API will be available at:
-   - API: <http://localhost:8000>
-   - Interactive docs: <http://localhost:8000/docs>
-   - Alternative docs: <http://localhost:8000/redoc>
+No Supabase credentials are needed to start the server — `app/main.py` does not
+import `database.py`. (Note that importing `database.py` without credentials
+raises at import time.)
 
 ### Production
-
-Run with uvicorn:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
@@ -83,83 +64,47 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 
 ## API Endpoints
 
-### Core Endpoints
-
 - `GET /` - Root endpoint with API info
 - `GET /api/health` - Health check
-- `GET /api/ready` - Readiness check (includes DB status)
+- `GET /api/ready` - Readiness check (always reports `database: not_configured`)
 
-### Tile Endpoints (Planned)
+That is the complete surface. There are no tile, data, or texture endpoints.
 
-- `GET /api/tiles/` - List available tile sources
-- `GET /api/tiles/{source_id}/{z}/{x}/{y}.mvt` - Vector tiles (proxied to Martin)
-- `GET /api/tiles/raster/{z}/{x}/{y}.png` - Raster tiles (proxied to TiTiler)
+## Tile Generation Scripts
+
+`scripts/generate_pmtiles_fast_*.py` download Overture Maps layers for a
+bounding box and tile them into PMTiles archives under `data/pmtiles/` at the
+repo root.
+
+Prerequisites:
+
+```bash
+pip install overturemaps
+# tippecanoe: apt install tippecanoe, brew install tippecanoe, or build from source
+```
+
+Then run a script and copy the resulting archives into
+`frontend/public/data/`. See the [root README](../README.md#generating-map-data).
 
 ## Development
 
-### Code Quality
-
-Format code:
-
 ```bash
-black app/
-ruff check app/ --fix  # Auto-fix issues
-```
-
-Type checking:
-
-```bash
-mypy app/
-```
-
-### Testing
-
-Run tests:
-
-```bash
-pytest
-pytest --cov=app  # With coverage
+ruff format .        # Format
+ruff check . --fix   # Lint and auto-fix
+mypy app/            # Type check
+pytest               # Tests (none written yet)
 ```
 
 ### Pre-commit Hooks
 
-Automatically format and lint before each commit:
-
 ```bash
-# Install pre-commit (from root directory)
 pip install pre-commit
 pre-commit install
-
-# Run manually on all files
 pre-commit run --all-files
 ```
 
-Hooks will:
-
-- Format Python code with Black
-- Lint with Ruff and auto-fix issues
-- Check types with mypy
-- Sort imports
-- Remove trailing whitespace
-- Check YAML/JSON syntax
-
 ## Configuration
 
-Key environment variables (see `.env.example`):
-
-- `SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_ANON_KEY`: Supabase anonymous/public key
-- `SUPABASE_SERVICE_KEY`: Supabase service role key (backend only)
-- `DATABASE_URL`: Supabase PostgreSQL connection string (for direct SQL access)
-- `CORS_ORIGINS`: Allowed CORS origins (comma-separated)
-- `TITILER_URL`: TiTiler service URL
-- `MARTIN_URL`: Martin tile server URL
-- `ENVIRONMENT`: deployment environment (development/production)
-
-## Integration with Frontend
-
-The frontend (React + MapLibre + deck.gl) will:
-
-1. Fetch vector tiles from `/api/tiles/{source}/{z}/{x}/{y}.mvt`
-2. Fetch raster tiles from `/api/tiles/raster/{z}/{x}/{y}.png`
-3. Request 3D model texture generation via AI endpoints (to be implemented)
+See `.env.example`. The only variables the running app reads are `APP_NAME`,
+`VERSION`, `ENVIRONMENT`, and `CORS_ORIGINS`; the rest are placeholders for
+future use.

@@ -1,105 +1,123 @@
 # NeuralAtlas
 
-## 3D Geospatial Visualization Platform with AI-Generated Building Textures
+## 3D Map Viewer for Overture Maps Data
 
-NeuralAtlas transforms "white box" building models into photorealistic 3D
-cityscapes using generative AI. The platform combines geospatial data sources
-(Overture Maps, OSM, regional datasets) with Stable Diffusion + ControlNet to
-generate contextually-appropriate building textures at scale.
+NeuralAtlas is a browser-based 3D map viewer. It renders locally generated
+vector tiles (PMTiles) from [Overture Maps](https://overturemaps.org/) data with
+MapLibre GL JS, with extruded buildings, terrain relief, and configurable layer
+styling.
 
-## Overview
+The long-term goal is AI-generated building textures (see
+[Roadmap](#roadmap)) — **none of that is implemented yet.** Everything described
+under [What Works Today](#what-works-today) is what the code actually does.
 
-### The Problem
+## What Works Today
 
-3D city models often lack realistic textures, making them look sterile and
-uninformative. Manually texturing millions of buildings is prohibitively
-expensive.
+- **Two locations**: Munich and Cortina d'Ampezzo (Dolomites), switchable at runtime
+- **3D buildings**: Height-extruded building footprints from Overture
+- **Terrain**: Raster-DEM hillshading via public Mapzen/AWS terrarium tiles
+- **Layer toggles**: Buildings, roads, landuse, terrain
+- **Style presets**: Per-layer styles (building/road/landuse) plus a dark/light base
+- **Offline tiles**: All map data is served as static PMTiles files — no tile
+  server, no database, no network calls except terrain tiles
 
-### The Solution
-
-- **Context-Aware Generation**: Extract building context (location, style,
-  era) and generate appropriate textures
-- **Archetype Strategy**: Create 50 variations per building type (e.g.,
-  "Munich Residential, 19th Century") and reuse across similar structures
-- **ControlNet Accuracy**: Maintain structural integrity (window/door
-  positions) while generating creative facades
-- **Probability Scores**: Provide estimates rather than definitive claims to
-  avoid legal liability
+The backend currently exposes health endpoints only. **The frontend does not
+call the backend**; you can run the map standalone.
 
 ## Architecture
 
-### Frontend (`/frontend`)
+### Frontend (`/frontend`) — the actual application
 
-- **React 19** + TypeScript + Vite
-- **MapLibre GL JS**: Base 2D map layer
-- **deck.gl**: 3D building overlay visualization
-- **Three.js**: Custom rendering for AI-generated textures
+- **React 19** + TypeScript + **Vite**
+- **MapLibre GL JS** for rendering (2D base map + 3D building extrusions)
+- **PMTiles** protocol for reading tile archives directly from static files
+- **Zustand** for map state, **Tailwind CSS** + **Radix UI** for the interface
 
-### Backend (`/backend`)
+### Backend (`/backend`) — scaffolding
 
-- **FastAPI**: Python async web framework
-- **Supabase**: Managed PostgreSQL + PostGIS for spatial data
-- **Martin**: Rust tile server for vector tiles
-- **TiTiler**: Raster tile server for satellite imagery
-- **DuckDB**: Direct Parquet querying from S3 (Overture Maps)
-- **PyTorch**: Stable Diffusion + ControlNet inference (planned)
+- **FastAPI** application with `/`, `/api/health`, `/api/ready`
+- **Supabase** client configured but unused at runtime
+- `scripts/` holds the offline PMTiles generation pipeline (see [Generating Map Data](#generating-map-data))
+
+### Database (`/supabase`)
+
+Project config and placeholder schemas. Nothing in the running app reads from
+the database — PMTiles handles all base map data statically.
 
 ### Data Sources
 
-- **Building Geometry**: Overture Maps, OSM, LOD2 Gebäudeumringe, NYC 3D,
-  3D BAG Netherlands
-- **Satellite Imagery**: Sentinel-2, ESA Copernicus, USGS EarthExplorer
-- **Terrain**: Mapzen/AWS Terrain Tiles, SRTM
-- **Metadata**: TUM GBA for building context
+- **Buildings, roads, landuse**: Overture Maps, downloaded via the `overturemaps` CLI
+- **Terrain**: Mapzen/AWS Terrain Tiles (terrarium encoding), fetched live from S3
 
 ## Quick Start
 
 ### Prerequisites
 
-- **Node.js** 18+ (for frontend)
-- **Python** 3.11+ (for backend)
-- **Supabase** account (free tier)
+- **Node.js** 18+ (tested on 22)
+- Map data files (see next step) — the map renders blank without them
 
-### Frontend Setup
+### 1. Get the map data
+
+PMTiles archives are gitignored because of their size (~94 MB for both
+locations). Either generate them yourself (see
+[Generating Map Data](#generating-map-data)) or extract the prebuilt copies
+stored on the `testold` branch:
+
+```bash
+for f in munich_buildings munich_roads munich_landuse \
+         dolomites_buildings dolomites_roads dolomites_landuse; do
+  git show testold:data/pmtiles/$f.pmtiles > frontend/public/data/$f.pmtiles
+done
+```
+
+The frontend expects these six files in `frontend/public/data/`, matching the
+paths in [`frontend/src/config/mapSources.ts`](./frontend/src/config/mapSources.ts).
+
+### 2. Run the frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev  # Starts at http://localhost:5173
+npm run dev  # http://localhost:5173
 ```
 
-### Backend Setup
+That's all you need for the map.
+
+### 3. Run the backend (optional)
+
+Not required by the frontend. Only useful if you're extending the API.
 
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env  # Edit with your Supabase credentials
-fastapi dev app/main.py  # Starts at http://localhost:8000
+cp .env.example .env
+fastapi dev app/main.py  # http://localhost:8000, docs at /docs
 ```
 
-### Pre-commit Hooks
+## Generating Map Data
 
-Install automatic code formatting and linting:
+The generation scripts download Overture data and tile it with
+[tippecanoe](https://github.com/felt/tippecanoe).
+
+Prerequisites:
 
 ```bash
-pip install pre-commit
-pre-commit install
-pre-commit run --all-files  # Run manually
+pip install overturemaps
+# tippecanoe: apt install tippecanoe, brew install tippecanoe, or build from source
 ```
 
-Hooks will automatically:
+Then:
 
-- Format Python with Ruff
-- Lint TypeScript with ESLint
-- Check types with mypy
-- Fix trailing whitespace and line endings
-- Validate JSON/YAML
+```bash
+python backend/scripts/generate_pmtiles_fast_munich.py
+python backend/scripts/generate_pmtiles_fast_cortina.py
+```
 
-## Project Status
-
-**Current Stage**: Early development / MVP planning
+Output lands in `data/pmtiles/` at the repo root. Copy the archives the
+frontend needs into `frontend/public/data/`. Downloads are large and slow —
+Munich buildings alone is ~57 MB tiled.
 
 ## Development Workflow
 
@@ -107,9 +125,12 @@ Hooks will automatically:
 
 ```bash
 cd frontend
-npm run dev      # Dev server with HMR
-npm run build    # Production build
-npm run lint     # ESLint
+npm run dev         # Dev server with HMR
+npm run build       # Production build
+npm run lint        # ESLint
+npm run type-check  # tsc --noEmit
+npm run format      # Prettier
+npm run check       # type-check + lint + format:check
 ```
 
 ### Backend
@@ -117,11 +138,41 @@ npm run lint     # ESLint
 ```bash
 cd backend
 fastapi dev app/main.py    # Dev server with auto-reload
-black app/                 # Format code
-ruff check app/ --fix      # Lint and fix
+ruff format .              # Format
+ruff check . --fix         # Lint and fix
 mypy app/                  # Type check
-pytest                     # Run tests
 ```
+
+### Repo-wide
+
+```bash
+make format      # Format Python
+make lint        # Lint Python + JS + Markdown
+make type-check  # mypy + tsc
+```
+
+### Pre-commit Hooks
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+## Project Status
+
+**Early development.** A working map viewer; no AI/ML pipeline.
+
+### Roadmap
+
+Not started — these are intentions, not features:
+
+- Texture generation with Stable Diffusion + ControlNet, applied to building facades
+- Archetype reuse (generate a limited set of variations per building type rather
+  than per building) to keep inference cost bounded
+- deck.gl / Three.js overlays for custom-textured geometry (prototyped on the
+  `testold` branch, not merged)
+- Satellite imagery and additional regional building datasets
 
 ## Documentation
 
@@ -131,20 +182,17 @@ pytest                     # Run tests
 
 ## Key Design Decisions
 
-### Tech Choices
-
-- **Supabase over self-hosted PostgreSQL**: Managed PostGIS + auth + storage + realtime
-- **React 19 without Compiler**: Better dev performance, acceptable prod performance
-- **FastAPI over Django**: Async-first, automatic OpenAPI docs, modern Python
-- **Martin over custom tile server**: Zero-code MVT serving from PostGIS
-- **DuckDB for Overture**: Query Parquet directly from S3 without full download
+- **Static PMTiles over a tile server**: No Martin/PostGIS/backend dependency for
+  map rendering; the tradeoff is that data is a build artifact, not a live query
+- **Overture via the `overturemaps` CLI**: Simpler than querying Parquet on S3 directly
+- **React 19 without the Compiler**: Better dev performance, acceptable in production
+- **FastAPI**: Async-first, automatic OpenAPI docs
 
 ## Contributing
 
-This is an early-stage personal project. Guidelines:
+Early-stage personal project. Guidelines:
 
 - Follow existing code style (enforced by pre-commit hooks)
-- Write tests for new features
 - Update documentation for API changes
 - Use conventional commits
 
@@ -154,6 +202,5 @@ See [LICENSE](./LICENSE) for details.
 
 ## Acknowledgments
 
-- **Data Sources**: Overture Maps Foundation, OpenStreetMap contributors, ESA Copernicus
-- **Tools**: FastAPI, React, MapLibre GL JS, deck.gl, Supabase
-- **ML**: Stable Diffusion, ControlNet
+- **Data Sources**: Overture Maps Foundation, OpenStreetMap contributors
+- **Tools**: MapLibre GL JS, PMTiles, tippecanoe, React, Vite, FastAPI
