@@ -1,12 +1,38 @@
 import type maplibregl from 'maplibre-gl';
-import { ROAD_STYLE_CONFIGS, LANDUSE_STYLE_CONFIGS } from '../styles/styleConfigs';
-import { BUILDING_HEIGHT } from '../styles/constants';
-import { BuildingStyle, RoadStyle, LanduseStyle } from '../types';
+import {
+  getRoadStyleConfig,
+  getLanduseColor,
+  getLandPhysicalColor,
+  LANDUSE_OPACITY,
+} from '../styles/styleConfigs';
+import { BUILDING_HEIGHT, THEME_COLORS } from '../styles/constants';
+import { BuildingStyle, RoadStyle, LanduseStyle, MapStyle } from '../types';
 import { LAYER_IDS } from '../config/mapConfig';
 
 export const updateLayerVisibility = (map: maplibregl.Map, layerId: string, visible: boolean) => {
   if (map.getLayer(layerId)) {
     map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+  }
+};
+
+
+export const updateTheme = (map: maplibregl.Map, theme: MapStyle) => {
+  const palette = THEME_COLORS[theme];
+
+  if (map.getLayer('background')) {
+    map.setPaintProperty('background', 'background-color', palette.background);
+  }
+  if (map.getLayer(LAYER_IDS.LANDUSE_FILL)) {
+    map.setPaintProperty(LAYER_IDS.LANDUSE_FILL, 'fill-color', getLanduseColor(theme));
+  }
+  if (map.getLayer(LAYER_IDS.LAND_PHYSICAL_FILL)) {
+    map.setPaintProperty(LAYER_IDS.LAND_PHYSICAL_FILL, 'fill-color', getLandPhysicalColor(theme));
+  }
+  if (map.getLayer(LAYER_IDS.BUILDINGS_FILL)) {
+    map.setPaintProperty(LAYER_IDS.BUILDINGS_FILL, 'fill-color', palette.building.fill);
+  }
+  if (map.getLayer(LAYER_IDS.BUILDINGS_3D)) {
+    map.setPaintProperty(LAYER_IDS.BUILDINGS_3D, 'fill-extrusion-color', palette.building.extrusion);
   }
 };
 
@@ -44,29 +70,31 @@ export const updateBuildingHeight = (map: maplibregl.Map, multiplier: number) =>
   map.setPaintProperty(LAYER_IDS.BUILDINGS_3D, 'fill-extrusion-height', heightExpression);
 };
 
-export const updateRoadStyle = (map: maplibregl.Map, style: RoadStyle) => {
+export const updateRoadStyle = (map: maplibregl.Map, style: RoadStyle, theme: MapStyle) => {
   if (!map.getLayer(LAYER_IDS.ROADS_LINE)) return;
 
-  const config = ROAD_STYLE_CONFIGS[style];
+  const config = getRoadStyleConfig(theme, style);
   map.setPaintProperty(LAYER_IDS.ROADS_LINE, 'line-color', config.color);
   map.setPaintProperty(LAYER_IDS.ROADS_LINE, 'line-width', config.width);
 };
 
 export const updateLanduseStyle = (map: maplibregl.Map, style: LanduseStyle) => {
-  if (!map.getLayer(LAYER_IDS.LANDUSE_FILL)) return;
+  const layerIds = [LAYER_IDS.LANDUSE_FILL, LAYER_IDS.LAND_PHYSICAL_FILL];
 
-  // land-physical follows visibility only; its per-class colouring (rock, scree,
-  // forest) is deliberately not overridden by the flat style presets.
   if (style === LanduseStyle.None) {
-    updateLayerVisibility(map, LAYER_IDS.LANDUSE_FILL, false);
-    updateLayerVisibility(map, LAYER_IDS.LAND_PHYSICAL_FILL, false);
-  } else {
-    updateLayerVisibility(map, LAYER_IDS.LANDUSE_FILL, true);
-    updateLayerVisibility(map, LAYER_IDS.LAND_PHYSICAL_FILL, true);
-    const config = LANDUSE_STYLE_CONFIGS[style];
-    map.setPaintProperty(LAYER_IDS.LANDUSE_FILL, 'fill-opacity', config.opacity);
-    map.setPaintProperty(LAYER_IDS.LANDUSE_FILL, 'fill-color', config.color);
+    layerIds.forEach((id) => updateLayerVisibility(map, id, false));
+    return;
   }
+
+  // Both fills share the preset opacity. land-physical in particular must not
+  // sit at full opacity: it covers the entire viewport in mountain regions and
+  // would hide everything painted beneath it.
+  const opacity = LANDUSE_OPACITY[style];
+  layerIds.forEach((id) => {
+    if (!map.getLayer(id)) return;
+    updateLayerVisibility(map, id, true);
+    map.setPaintProperty(id, 'fill-opacity', opacity);
+  });
 };
 
 export const updateTerrainExaggeration = (map: maplibregl.Map, exaggeration: number) => {

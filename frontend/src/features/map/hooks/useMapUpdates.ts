@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { useMapStore } from '../store';
-import { MapStyle } from '../types';
 import { LAYER_MAPPING } from '../config/mapConfig';
 import {
   updateLayerVisibility,
+  updateTheme,
   updateBuildingStyle,
   updateBuildingHeight,
   updateRoadStyle,
@@ -20,7 +20,6 @@ export const useMapUpdates = (
 ) => {
   const {
     visibleLayers,
-    backgroundColor,
     mapStyle,
     buildingStyle,
     buildingHeight,
@@ -29,24 +28,12 @@ export const useMapUpdates = (
     terrainExaggeration,
   } = useMapStore();
 
-  // Update map style (background color)
+  // Apply the theme palette across every layer that carries a colour.
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    const bgColor = mapStyle === MapStyle.Dark ? '#1a1a2e' : '#f0f0f0';
-    if (map.current.getLayer('background')) {
-      map.current.setPaintProperty('background', 'background-color', bgColor);
-    }
+    updateTheme(map.current, mapStyle);
   }, [mapStyle, map, mapLoaded]);
-
-  // Update background color
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-
-    if (map.current.getLayer('background')) {
-      map.current.setPaintProperty('background', 'background-color', backgroundColor);
-    }
-  }, [backgroundColor, map, mapLoaded]);
 
   // Update layer visibility
   useEffect(() => {
@@ -72,8 +59,8 @@ export const useMapUpdates = (
   useEffect(() => {
     if (!map.current || !mapLoaded || !visibleLayers.roads) return;
 
-    updateRoadStyle(map.current, roadStyle);
-  }, [roadStyle, visibleLayers.roads, map, mapLoaded]);
+    updateRoadStyle(map.current, roadStyle, mapStyle);
+  }, [roadStyle, mapStyle, visibleLayers.roads, map, mapLoaded]);
 
   // Update landuse style
   useEffect(() => {

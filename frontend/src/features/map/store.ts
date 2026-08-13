@@ -11,7 +11,6 @@ interface MapState {
     landuse: boolean;
     terrain: boolean;
   };
-  backgroundColor: string;
   mapStyle: MapStyle;
   buildingStyle: BuildingStyle;
   roadStyle: RoadStyle;
@@ -22,7 +21,6 @@ interface MapState {
   setLocation: (location: Location) => void;
   setBbox: (bbox: BBox) => void;
   toggleLayer: (layer: LayerType) => void;
-  setBackgroundColor: (color: string) => void;
   setMapStyle: (style: MapStyle) => void;
   setBuildingStyle: (style: BuildingStyle) => void;
   setRoadStyle: (style: RoadStyle) => void;
@@ -42,7 +40,6 @@ export const useMapStore = create<MapState>((set) => ({
     landuse: true,
     terrain: false,
   },
-  backgroundColor: '#1a1a2e',
   mapStyle: MapStyle.Dark,
   buildingStyle: BuildingStyle.Realistic,
   roadStyle: RoadStyle.Default,
@@ -59,7 +56,6 @@ export const useMapStore = create<MapState>((set) => ({
         [layer]: !state.visibleLayers[layer],
       },
     })),
-  setBackgroundColor: (color) => set({ backgroundColor: color }),
   setMapStyle: (style) => set({ mapStyle: style }),
   setBuildingStyle: (style) => set({ buildingStyle: style }),
   setRoadStyle: (style) => set({ roadStyle: style }),

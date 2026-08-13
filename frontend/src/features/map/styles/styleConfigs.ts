@@ -1,156 +1,128 @@
-import { ROAD_COLORS, ROAD_WIDTHS, LANDUSE_COLORS } from './constants';
+import { THEME_COLORS, ROAD_WIDTHS } from './constants';
+import { MapStyle, RoadStyle, LanduseStyle } from '../types';
 import type { ExpressionSpecification } from 'maplibre-gl';
 
-export const ROAD_STYLE_CONFIGS = {
-  default: {
-    color: [
-      'match',
-      ['get', 'road_class'],
-      'motorway',
-      ROAD_COLORS.motorway,
-      'trunk',
-      ROAD_COLORS.trunk,
-      'primary',
-      ROAD_COLORS.primary,
-      'secondary',
-      ROAD_COLORS.secondary,
-      'tertiary',
-      ROAD_COLORS.tertiary,
-      ROAD_COLORS.default,
-    ] as ExpressionSpecification,
-    width: [
-      'match',
-      ['get', 'road_class'],
-      'motorway',
-      ROAD_WIDTHS.motorway,
-      'trunk',
-      ROAD_WIDTHS.trunk,
-      'primary',
-      ROAD_WIDTHS.primary,
-      'secondary',
-      ROAD_WIDTHS.secondary,
-      'tertiary',
-      ROAD_WIDTHS.tertiary,
-      ROAD_WIDTHS.default,
-    ] as ExpressionSpecification,
-  },
-  minimal: {
-    color: '#606070',
-    width: [
-      'match',
-      ['get', 'road_class'],
-      'motorway',
-      2,
-      'trunk',
-      1.5,
-      'primary',
-      1.2,
-      'secondary',
-      1,
-      'tertiary',
-      0.8,
-      0.5,
-    ] as ExpressionSpecification,
-  },
-  prominent: {
-    color: [
-      'match',
-      ['get', 'road_class'],
-      'motorway',
-      '#ff6b4a',
-      'trunk',
-      '#ff8c69',
-      'primary',
-      '#ffa07a',
-      'secondary',
-      '#ffd4a3',
-      'tertiary',
-      '#ffe5c2',
-      '#e0e0f0',
-    ] as ExpressionSpecification,
-    width: [
-      'match',
-      ['get', 'road_class'],
-      'motorway',
-      8,
-      'trunk',
-      7,
-      'primary',
-      6,
-      'secondary',
-      4.5,
-      'tertiary',
-      3,
-      2,
-    ] as ExpressionSpecification,
-  },
+
+const roadColor = (theme: MapStyle): ExpressionSpecification => {
+  const c = THEME_COLORS[theme].road;
+
+  return [
+    'match',
+    ['get', 'class'],
+    'motorway',
+    c.motorway,
+    'trunk',
+    c.trunk,
+    'primary',
+    c.primary,
+    'secondary',
+    c.secondary,
+    'tertiary',
+    c.tertiary,
+    ['residential', 'living_street', 'unclassified', 'service'],
+    c.minor,
+    ['footway', 'path', 'cycleway', 'track', 'steps', 'bridleway', 'pedestrian'],
+    c.path,
+    c.default,
+  ] as ExpressionSpecification;
 };
 
-export const LANDUSE_STYLE_CONFIGS = {
-  vibrant: {
-    opacity: 0.8,
-    color: [
-      'match',
-      ['get', 'class'],
-      'forest',
-      LANDUSE_COLORS.forest,
-      'grass',
-      LANDUSE_COLORS.grass,
+const roadWidth = (scale: number): ExpressionSpecification =>
+  [
+    'match',
+    ['get', 'class'],
+    'motorway',
+    ROAD_WIDTHS.motorway * scale,
+    'trunk',
+    ROAD_WIDTHS.trunk * scale,
+    'primary',
+    ROAD_WIDTHS.primary * scale,
+    'secondary',
+    ROAD_WIDTHS.secondary * scale,
+    'tertiary',
+    ROAD_WIDTHS.tertiary * scale,
+    ['residential', 'living_street', 'unclassified', 'service'],
+    ROAD_WIDTHS.default * scale,
+    ['footway', 'path', 'cycleway', 'track', 'steps', 'bridleway', 'pedestrian'],
+    ROAD_WIDTHS.default * scale * 0.6,
+    ROAD_WIDTHS.default * scale * 0.6,
+  ] as ExpressionSpecification;
+
+export const getRoadStyleConfig = (theme: MapStyle, style: RoadStyle) => {
+  const scale =
+    style === RoadStyle.Minimal ? 0.35 : style === RoadStyle.Prominent ? 1.6 : 1;
+
+  return {
+    color: style === RoadStyle.Minimal ? THEME_COLORS[theme].road.minor : roadColor(theme),
+    width: roadWidth(scale),
+  };
+};
+
+
+export const LANDUSE_OPACITY: Record<Exclude<LanduseStyle, LanduseStyle.None>, number> = {
+  [LanduseStyle.Vibrant]: 0.9,
+  [LanduseStyle.Subtle]: 0.3,
+};
+
+export const getLanduseColor = (theme: MapStyle): ExpressionSpecification => {
+  const c = THEME_COLORS[theme].landuse;
+
+  return [
+    'match',
+    ['get', 'class'],
+    ['forest', 'wood'],
+    c.forest,
+    [
       'park',
-      LANDUSE_COLORS.park,
-      'water',
-      LANDUSE_COLORS.water,
-      'residential',
-      LANDUSE_COLORS.residential,
-      'commercial',
-      LANDUSE_COLORS.commercial,
-      'industrial',
-      LANDUSE_COLORS.industrial,
-      LANDUSE_COLORS.default,
-    ] as ExpressionSpecification,
-  },
-  subtle: {
-    opacity: 0.3,
-    color: [
-      'match',
-      ['get', 'class'],
-      'forest',
-      '#3a3a4a',
+      'garden',
+      'flowerbed',
+      'national_park',
+      'species_management_area',
       'grass',
-      '#353545',
-      'park',
-      '#383848',
-      'water',
-      '#2a3a4a',
-      'residential',
-      '#303035',
-      'commercial',
-      '#353540',
-      'industrial',
-      '#3a3a45',
-      '#303038',
-    ] as ExpressionSpecification,
-  },
-  monochrome: {
-    opacity: 0.5,
-    color: [
-      'match',
-      ['get', 'class'],
-      'forest',
-      '#404050',
-      'grass',
-      '#454555',
-      'park',
-      '#484858',
-      'water',
-      '#303040',
-      'residential',
-      '#383840',
-      'commercial',
-      '#3d3d45',
-      'industrial',
-      '#424248',
-      '#383840',
-    ] as ExpressionSpecification,
-  },
+      'meadow',
+      'cemetery',
+      'vineyard',
+      'orchard',
+      'farmland',
+      'golf_course',
+    ],
+    c.green,
+    ['pitch', 'playground', 'track', 'winter_sports', 'downhill', 'nordic', 'camp_site', 'recreation_ground'],
+    c.recreation,
+    ['residential'],
+    c.residential,
+    ['commercial', 'retail'],
+    c.commercial,
+    ['industrial', 'quarry', 'military', 'construction'],
+    c.industrial,
+    ['plaza', 'pedestrian', 'connection'],
+    c.paved,
+    c.default,
+  ] as ExpressionSpecification;
+};
+
+export const getLandPhysicalColor = (theme: MapStyle): ExpressionSpecification => {
+  const c = THEME_COLORS[theme].landPhysical;
+
+  return [
+    'match',
+    ['get', 'class'],
+    ['forest', 'wood', 'tree'],
+    c.forest,
+    ['grassland', 'grass', 'meadow', 'heath'],
+    c.grassland,
+    ['scrub'],
+    c.scrub,
+    ['bare_rock', 'rock', 'cliff'],
+    c.rock,
+    ['scree', 'shingle'],
+    c.scree,
+    ['sand', 'beach', 'dune'],
+    c.sand,
+    ['wetland', 'marsh', 'swamp'],
+    c.wetland,
+    ['glacier'],
+    c.glacier,
+    c.default,
+  ] as ExpressionSpecification;
 };
